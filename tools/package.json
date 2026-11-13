@@ -1,0 +1,6 @@
+{
+  "name": "soul-link-team-builder-tools",
+  "private": true,
+  "scripts": { "data": "node extract.js", "build": "node build.js && cp index.html ../index.html" },
+  "dependencies": { "@pkmn/dex": "0.11.0" }
+}

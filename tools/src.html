@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soul Link Team Planner</title>
+<meta name="description" content="Pick the strongest legal team from your linked Soul Link Nuzlocke encounters.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #eceef5; --surface: #ffffff; --sunk: #e3e6f0; --ink: #191b29; --muted: #565b74; --line: #d2d6e3;
+  --p1: #cf3b30; --p2: #2763c9; --p3: #23874a; --link: #b07d0c;
+  --good: #0f7f86; --warn: #a86a10; --bad: #c22f2f;
+  --display: 'Pixelify Sans', ui-monospace, 'Courier New', monospace;
+  --body: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r-card: 10px; --r-input: 8px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11121b; --surface: #1b1d2a; --sunk: #151722; --ink: #eceef8; --muted: #a0a6bf; --line: #2f3246;
+    --p1: #ff6d60; --p2: #6ea2ff; --p3: #4fd083; --link: #e8b93c;
+    --good: #45c9d1; --warn: #e6a945; --bad: #ff6b6b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11121b; --surface: #1b1d2a; --sunk: #151722; --ink: #eceef8; --muted: #a0a6bf; --line: #2f3246;
+  --p1: #ff6d60; --p2: #6ea2ff; --p3: #4fd083; --link: #e8b93c;
+  --good: #45c9d1; --warn: #e6a945; --bad: #ff6b6b;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 1rem; line-height: 1.5; }
+.wrap { max-width: 1020px; margin: 0 auto; padding: 24px 16px 64px; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 7vw, 3.1rem); }
+h2 { font-size: 1.35rem; }
+h3 { font-size: 1.05rem; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.muted { color: var(--muted); }
+.c1 { color: var(--p1); } .c2 { color: var(--p2); } .c3 { color: var(--p3); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 18px 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* Hero */
+.hero { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+.cable { width: 100%; height: 34px; display: block; }
+.cable path { fill: none; stroke: var(--link); stroke-width: 2.5; stroke-dasharray: 7 6; stroke-linecap: round; }
+.cable circle { stroke: var(--surface); stroke-width: 3; }
+.h1-1 { color: var(--p1); } .h1-2 { color: var(--p2); } .h1-3 { color: var(--p3); }
+.lede { font-size: 1.1rem; max-width: 62ch; }
+.example-note { border: 2px dashed var(--link); border-radius: var(--r-card); padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; background: color-mix(in srgb, var(--link) 8%, var(--surface)); }
+.example-note p { flex: 1 1 260px; }
+
+/* Buttons */
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-input); padding: 7px 12px; cursor: pointer; font-weight: 700; font-size: .92rem; min-height: 38px; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+.btn.danger-outline { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 55%, var(--line)); }
+.btn.confirming { background: var(--bad); color: #fff; border-color: var(--bad); }
+.btn.small { min-height: 32px; padding: 4px 10px; font-size: .85rem; }
+.btn[aria-pressed="true"].tog-pin { background: var(--link); border-color: var(--link); color: #1b1b1b; }
+.btn[aria-pressed="true"].tog-dead { background: var(--bad); border-color: var(--bad); color: #fff; }
+
+/* Settings */
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px 20px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+.flabel { text-transform: uppercase; font-size: .8rem; letter-spacing: .07em; color: var(--muted); font-weight: 700; }
+.hint { font-size: .88rem; color: var(--muted); }
+input[type="text"], select, textarea { background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-input); padding: 8px 10px; min-height: 40px; width: 100%; min-width: 0; }
+input[type="text"]:hover, select:hover { border-color: var(--muted); }
+.name-inputs { display: flex; flex-direction: column; gap: 8px; }
+.name-row { display: flex; flex-direction: column; gap: 4px; }
+.name-row input { border-left: 4px solid var(--pc); }
+.seg { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: var(--r-input); overflow: hidden; background: var(--sunk); }
+.seg button { flex: 1 1 auto; border: 0; border-right: 1px solid var(--line); background: transparent; padding: 8px 10px; min-height: 40px; cursor: pointer; font-weight: 700; font-size: .9rem; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button:focus-visible { outline-offset: -3px; }
+.range-wrap { display: flex; flex-direction: column; gap: 4px; }
+.range-wrap input[type="range"] { width: 100%; accent-color: var(--link); margin: 0; min-height: 28px; }
+.range-labels { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; font-size: .85rem; color: var(--muted); align-items: baseline; }
+.range-labels span:last-child { text-align: right; }
+.range-labels output { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; text-align: center; }
+
+/* Chips and flags */
+.chips { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.chip { display: inline-block; color: #fff; text-transform: uppercase; font-weight: 700; font-size: .7rem; letter-spacing: .03em; padding: 2px 7px; border-radius: 999px; text-shadow: 0 1px 1px rgba(0,0,0,.35); line-height: 1.5; white-space: nowrap; }
+.chip.dk { color: #1b1b1b; text-shadow: 0 1px 0 rgba(255,255,255,.35); }
+.flag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.flag.gold { color: var(--link); }
+.flag.bad { color: var(--bad); }
+.flag.warn { color: var(--warn); }
+.flag.good { color: var(--good); }
+.bst { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.err { color: var(--bad); font-size: .88rem; font-weight: 700; }
+
+/* Encounter editor */
+.enc-list { display: flex; flex-direction: column; gap: 14px; }
+.enc { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.enc.is-clash { border: 2px solid var(--bad); }
+.enc.is-dead { background: var(--sunk); }
+.enc-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.enc-loc { flex: 1 1 200px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.enc-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.cols { display: grid; gap: 12px; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
+@media (max-width: 419.98px) { .cols.n2 { grid-template-columns: 1fr; } }
+@media (max-width: 559.98px) { .cols.n3 { grid-template-columns: 1fr; } }
+.col { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding-left: 10px; border-left: 3px solid var(--pc); }
+.plabel { color: var(--pc); font-weight: 700; font-size: .9rem; overflow-wrap: anywhere; }
+.info { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 24px; }
+.status { font-size: .9rem; font-weight: 700; }
+.status.ok { color: var(--good); }
+.status.no { color: var(--muted); }
+.status.bad { color: var(--bad); }
+
+/* Results */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { border: 1px solid var(--line); background: var(--sunk); border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: .88rem; cursor: pointer; min-height: 34px; font-variant-numeric: tabular-nums; }
+.tab[aria-pressed="true"] { background: var(--link); border-color: var(--link); color: #1b1b1b; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.tile { background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-card); padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tile .tl { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; overflow-wrap: anywhere; }
+.tile .tv { font-family: var(--display); font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tile.dark { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.tile.dark .tl { color: color-mix(in srgb, var(--bg) 75%, var(--ink)); }
+.tile.side { border-bottom: 3px solid var(--pc); }
+.notes { display: flex; flex-direction: column; gap: 8px; }
+.note { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; font-size: .92rem; }
+.note p { flex: 1 1 220px; }
+.rows { display: flex; flex-direction: column; gap: 10px; }
+.rowhead, .mons { display: grid; gap: 0; align-items: stretch; }
+.n2 .rowhead, .n2 .mons { grid-template-columns: minmax(0,1fr) 40px minmax(0,1fr); }
+.n3 .rowhead, .n3 .mons { grid-template-columns: minmax(0,1fr) 30px minmax(0,1fr) 30px minmax(0,1fr); }
+.rowhead { font-weight: 700; font-size: .9rem; }
+.rowhead span { overflow-wrap: anywhere; }
+.n2 .rowhead span:last-child { text-align: right; }
+.trow { display: flex; flex-direction: column; gap: 6px; }
+.trow-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: .82rem; color: var(--muted); }
+.pill { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 1px 10px; font-size: .78rem; font-weight: 700; cursor: pointer; min-height: 26px; }
+.pill[aria-pressed="true"] { background: var(--link); border-color: var(--link); color: #1b1b1b; }
+.mon { background: var(--sunk); border: 1px solid var(--line); border-top: 4px solid var(--pc); border-radius: var(--r-card); padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mon .mn { font-weight: 700; overflow-wrap: anywhere; }
+.mon .from { font-size: .8rem; color: var(--muted); }
+.knot { position: relative; display: flex; align-items: center; justify-content: center; }
+.knot::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px dashed var(--link); }
+.knot i { position: relative; width: 10px; height: 10px; background: var(--link); transform: rotate(45deg); border-radius: 2px; animation: pulse 2.4s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { transform: rotate(45deg) scale(1); opacity: 1; } 50% { transform: rotate(45deg) scale(1.3); opacity: .75; } }
+@media (max-width: 559.98px) {
+  .n3 .rowhead { display: none; }
+  .n3 .mons { grid-template-columns: 1fr; }
+  .n3 .knot { height: 18px; }
+  .n3 .knot::before { left: 50%; right: auto; top: 0; bottom: 0; border-top: 0; border-left: 2px dashed var(--link); }
+}
+.empty { color: var(--muted); font-size: .95rem; }
+
+.board { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.cell { border: 1px solid var(--line); border-radius: var(--r-card); padding: 8px 10px; background: var(--sunk); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cell.shared { border: 2px solid var(--warn); }
+.cell .ct { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: .9rem; }
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.cell .cu { font-size: .85rem; font-weight: 700; overflow-wrap: anywhere; }
+.cell .free { font-size: .85rem; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .85rem; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; background: var(--pc); display: inline-block; }
+.board-note { display: flex; flex-direction: column; gap: 4px; font-size: .92rem; }
+
+.checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.check { background: var(--sunk); border: 1px solid var(--line); border-top: 4px solid var(--pc); border-radius: var(--r-card); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.check h3 { color: var(--pc); overflow-wrap: anywhere; }
+.check .sub { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; color: var(--muted); }
+.weak { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.weak span { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; }
+.weak .bad { color: var(--bad); font-weight: 700; }
+
+.bench { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.bench li { border-bottom: 1px solid var(--line); padding-bottom: 8px; display: flex; flex-direction: column; gap: 2px; }
+.bench li:last-child { border-bottom: 0; padding-bottom: 0; }
+.bench .bl { overflow-wrap: anywhere; }
+.bench .br { font-size: .9rem; color: var(--muted); }
+.bench .br.bad { color: var(--bad); }
+
+.save-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+textarea { min-height: 110px; font-family: ui-monospace, 'Courier New', monospace; font-size: .8rem; resize: vertical; }
+.save-status { font-size: .9rem; color: var(--muted); min-height: 1.5em; }
+
+@media (min-width: 700px) {
+  .wrap { padding: 32px 24px 80px; }
+  .card { padding: 20px 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .knot i { animation: none; }
+  * { scroll-behavior: auto !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero">
+    <svg class="cable" id="cable" viewBox="0 0 600 34" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <h1><span class="h1-1">Soul</span> <span class="h1-2">Link</span> <span class="h1-3">Team</span> Planner</h1>
+    <p class="lede" id="lede" aria-live="polite"></p>
+    <div class="example-note" id="exampleNote" hidden>
+      <p><strong>Example run (Emerald).</strong> These encounters are placeholders so you can see how it works. Replace them with your own.</p>
+      <button type="button" class="btn danger" id="clearExample">Clear example and start my run</button>
+    </div>
+  </header>
+
+  <section class="card" aria-labelledby="settingsTitle">
+    <h2 id="settingsTitle">Settings</h2>
+    <div class="settings-grid">
+      <div class="field">
+        <label class="flabel" for="game">Game</label>
+        <select id="game"></select>
+      </div>
+      <div class="field">
+        <span class="flabel" id="playersLabel">Players</span>
+        <div class="seg" role="group" aria-labelledby="playersLabel">
+          <button type="button" id="players-2" data-n="2">2 players</button>
+          <button type="button" id="players-3" data-n="3">3 players (three-way)</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="flabel">Player names</span>
+        <div class="name-inputs" id="nameInputs"></div>
+      </div>
+      <div class="field">
+        <span class="flabel" id="ruleLabel">Primary type rule</span>
+        <div class="seg" role="group" aria-labelledby="ruleLabel">
+          <button type="button" id="rule-cross" data-rule="cross">No sharing</button>
+          <button type="button" id="rule-strict" data-rule="strict">All unique</button>
+          <button type="button" id="rule-none" data-rule="none">Off (no clause)</button>
+        </div>
+        <p class="hint" id="ruleHint"></p>
+      </div>
+      <div class="field">
+        <span class="flabel" id="megaLabel">Mega Evolutions</span>
+        <div class="seg" role="group" aria-labelledby="megaLabel">
+          <button type="button" id="megas-off" data-megas="0">Off</button>
+          <button type="button" id="megas-on" data-megas="1">Allow in any game</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="flabel" id="favourLabel">Whose team to favour</span>
+        <div class="seg" role="group" aria-labelledby="favourLabel" id="favourSeg"></div>
+        <div class="range-wrap" id="favourAmtWrap" hidden>
+          <label class="sr-only" for="favourAmt">How strongly to favour</label>
+          <input type="range" id="favourAmt" min="10" max="100" step="10">
+          <div class="range-labels"><span>A little</span><output id="favourOut" for="favourAmt"></output><span>Fully</span></div>
+        </div>
+      </div>
+      <div class="field wide">
+        <label class="flabel" for="weight">What matters more</label>
+        <div class="range-wrap">
+          <input type="range" id="weight" min="0" max="100" step="5">
+          <div class="range-labels"><span>Raw stats</span><output id="weightOut" for="weight"></output><span>Type balance</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="bestTitle" id="bestSec">
+    <h2 id="bestTitle">Best legal team</h2>
+    <div class="tabs" id="tabs" role="group" aria-label="Team options"></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="notes" id="notes"></div>
+    <div id="teamRows"></div>
+  </section>
+
+  <section class="card" aria-labelledby="boardTitle">
+    <h2 id="boardTitle">Primary type board</h2>
+    <div class="legend" id="legend"></div>
+    <div class="board" id="board"></div>
+    <div class="board-note" id="boardNote"></div>
+  </section>
+
+  <section class="card" aria-labelledby="checkTitle">
+    <h2 id="checkTitle">Team check</h2>
+    <div class="checks" id="checks"></div>
+  </section>
+
+  <section class="card" aria-labelledby="benchTitle">
+    <h2 id="benchTitle">On the bench</h2>
+    <ul class="bench" id="bench"></ul>
+  </section>
+
+  <section aria-labelledby="encTitle" style="display:flex;flex-direction:column;gap:14px">
+    <div class="sec-head">
+      <h2 id="encTitle">Your linked encounters</h2>
+      <button type="button" class="btn primary" id="addTop">Add encounter</button>
+    </div>
+    <div class="enc-list" id="encList"></div>
+    <div><button type="button" class="btn primary" id="addBottom">Add encounter</button></div>
+    <datalist id="speciesList"></datalist>
+  </section>
+
+  <section class="card" aria-labelledby="saveTitle">
+    <h2 id="saveTitle">Save and share</h2>
+    <p class="hint">Your run saves in this browser automatically. To move it to another device or share it, copy the run data and paste it there.</p>
+    <div class="save-actions">
+      <button type="button" class="btn" id="copyData">Copy run data</button>
+      <button type="button" class="btn" id="loadData">Load pasted data</button>
+      <button type="button" class="btn danger-outline" id="blankRun">Start a blank run</button>
+    </div>
+    <label class="flabel" for="runData">Run data</label>
+    <textarea id="runData" spellcheck="false" placeholder="Paste run data here, then choose Load pasted data."></textarea>
+    <span class="save-status" id="saveStatus" role="status"></span>
+    <h3>How scoring works</h3>
+    <p class="hint" id="howScoring">Each Pokémon's base stat total is turned into a 0 to 100 power score, where 200 or less counts as 0 and 600 or more counts as 100. A player's raw stats are the average power of their six. If a player plans more than one Mega, only the single biggest Mega boost counts, because only one Pokémon can Mega Evolve per battle. Type balance is half coverage (how many types the team can hit super effectively with its own types) and half defence, which drops when several team members share a weakness that nobody on the team resists. Each player's team score mixes raw stats and type balance using the "What matters more" slider, and the overall team score is the average of the players' scores, shifted toward one player if you choose to favour them. The planner then searches every legal combination of usable links, always prefers a bigger legal team, and shows the five best.</p>
+  </section>
+</main>
+
+<script>
+'use strict';
+const DATA = /*__DATA__*/;
+const TYPES = DATA.types;
+const SP = DATA.sp;
+const TYPE_COLORS = ['#9fa19f', '#e62829', '#2980ef', '#fac000', '#3fa129', '#3dcef3', '#ff8000', '#9141cb', '#915121', '#81b9ef', '#ef4179', '#91a119', '#afa981', '#704170', '#5060e1', '#624d4e', '#60a1b8', '#ef70ef'];
+const DARK_TEXT = new Set([0, 3, 5, 9, 12]);
+const GAMES = [
+  ['1', 'Red / Blue / Yellow'], ['2', 'Gold / Silver / Crystal'], ['3', 'Ruby / Sapphire / Emerald / FireRed / LeafGreen'],
+  ['4', 'Diamond / Pearl / Platinum / HeartGold / SoulSilver'], ['5', 'Black / White / Black 2 / White 2'],
+  ['6', 'X / Y / Omega Ruby / Alpha Sapphire'], ['7', 'Sun / Moon / Ultra Sun / Ultra Moon'],
+  ['8', 'Sword / Shield / BDSP / Legends: Arceus'], ['9', 'Scarlet / Violet / Legends: Z-A'],
+];
+const STORE_KEY = 'soul-link-planner-v1';
+const DEFAULT_NAMES = ['Kartikey', 'Partner', 'Player 3'];
+const NODE_CAP = 300000;
+const RULES = ['cross', 'strict', 'none'];
+
+// ---------- Small helpers ----------
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const range = (n) => Array.from({ length: n }, (_, i) => i);
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    const v = attrs[k];
+    if (v === null || v === undefined || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style') el.setAttribute('style', v);
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'text') el.textContent = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+function joinNames(list) {
+  if (list.length <= 1) return list.join('');
+  if (list.length === 2) return list[0] + ' and ' + list[1];
+  return list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
+}
+function joinNodes(nodes, last = ' and ') {
+  const out = [];
+  nodes.forEach((n, i) => {
+    if (i > 0) out.push(i === nodes.length - 1 ? last : ', ');
+    out.push(n);
+  });
+  return out;
+}
+const nameKey = (s) => String(s).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '');
+const BY_NAME = new Map();
+SP.forEach((s, i) => BY_NAME.set(nameKey(s.n), i));
+function lookup(text) {
+  const k = nameKey(text || '');
+  if (!k) return null;
+  const i = BY_NAME.get(k);
+  return i === undefined ? -1 : i;
+}
+
+// ---------- Game data helpers ----------
+const chartOf = (gen) => DATA.charts[gen <= 1 ? 1 : gen <= 5 ? 2 : 6];
+const typeExists = (gen, t) => chartOf(gen)[t][t] !== null;
+const genTypeList = (gen) => range(18).filter((t) => typeExists(gen, t));
+function typesOf(i, gen) {
+  const s = SP[i];
+  let t = (s.to && s.to[gen]) || s.t;
+  t = t.filter((x) => typeExists(gen, x));
+  if (!t.length) t = s.m ? typesOf(s.base, gen) : [0];
+  return t;
+}
+const bstOf = (i, gen) => { const s = SP[i]; return (s.bo && s.bo[gen]) || s.b; };
+const isAvail = (i, gen) => { const s = SP[i]; return s.m ? SP[s.base].g <= gen : s.g <= gen; };
+const scaleBst = (b) => clamp((b - 200) / 400, 0, 1) * 100;
+function availDesc(i, gen) { return (SP[i].e || []).filter((d) => SP[d].g <= gen); }
+function chainEnd(i, gen) {
+  const ds = availDesc(i, gen);
+  if (!ds.length) return i;
+  const child = ds.find((d) => availDesc(d, gen).length === ds.length - 1);
+  if (child === undefined) return null;
+  return chainEnd(child, gen);
+}
+function autoPlan(c, gen) { const end = chainEnd(c, gen); return end === null ? c : end; }
+function planOptions(c, gen, megas) {
+  const opts = [{ i: c, label: 'Keep as ' + SP[c].n }];
+  const addMegas = (x) => { if (megas) for (const m of SP[x].mg || []) opts.push({ i: m, label: SP[m].n, mega: true }); };
+  addMegas(c);
+  for (const d of availDesc(c, gen)) { opts.push({ i: d, label: 'Evolve to ' + SP[d].n }); addMegas(d); }
+  return opts;
+}
+function effPlan(c, planText, gen, megas) {
+  const opts = planOptions(c, gen, megas);
+  const p = lookup(planText);
+  if (p !== null && p >= 0) {
+    if (opts.some((o) => o.i === p)) return p;
+    if (SP[p].m && opts.some((o) => o.i === SP[p].base)) return SP[p].base;
+  }
+  return c;
+}
+
+// ---------- State ----------
+let idCounter = 0;
+const newId = () => 'l' + Date.now().toString(36) + (idCounter++).toString(36);
+const emptyMon = () => ({ sp: '', plan: '' });
+const EXAMPLE = [
+  ['Littleroot (starter)', [['Treecko', 'Sceptile'], ['Mudkip', 'Swampert'], ['Torchic', 'Blaziken']]],
+  ['Route 101', [['Zigzagoon', 'Linoone'], ['Wurmple', 'Beautifly'], ['Poochyena', 'Mightyena']]],
+  ['Route 102', [['Ralts', 'Gardevoir'], ['Seedot', 'Shiftry'], ['Lotad', 'Ludicolo']]],
+  ['Route 104', [['Taillow', 'Swellow'], ['Wingull', 'Pelipper'], ['Surskit', 'Masquerain']]],
+  ['Petalburg Woods', [['Shroomish', 'Breloom'], ['Slakoth', 'Slaking'], ['Wurmple', 'Dustox']]],
+  ['Route 116', [['Whismur', 'Exploud'], ['Nincada', 'Ninjask'], ['Abra', 'Alakazam']]],
+  ['Granite Cave', [['Makuhita', 'Hariyama'], ['Aron', 'Aggron'], ['Sableye', 'Sableye']]],
+  ['Route 106', [['Tentacool', 'Tentacruel'], ['Geodude', 'Golem'], ['Magikarp', 'Gyarados']], true],
+  ['Route 117', [['Marill', 'Azumarill'], ['Roselia', 'Roselia'], ['Illumise', 'Illumise']]],
+  ['Route 110', [['Electrike', 'Manectric'], ['Shuppet', 'Banette'], ['Gulpin', 'Swalot']]],
+  ['Route 111 (desert)', [['Trapinch', 'Flygon'], ['Sandshrew', 'Sandslash'], ['Cacnea', 'Cacturne']]],
+  ['Route 112', [['Numel', 'Camerupt'], ['Machop', 'Machamp'], ['Marill', 'Azumarill']]],
+  ['Fiery Path', [['Torkoal', 'Torkoal'], ['Koffing', 'Weezing'], ['Machop', 'Machamp']]],
+  ['Route 113', [['Spinda', 'Spinda'], ['Skarmory', 'Skarmory'], ['Sandshrew', 'Sandslash']]],
+  ['Route 115', [['Meditite', 'Medicham'], ['Swablu', 'Altaria'], ['Jigglypuff', 'Wigglytuff']]],
+  ['Route 119', [['Feebas', 'Milotic'], ['Tropius', 'Tropius'], ['Kecleon', 'Kecleon']]],
+];
+function exampleState() {
+  return {
+    v: 2, example: true, n: 2, game: '3', players: DEFAULT_NAMES.slice(), rule: 'cross', megas: false,
+    favour: -1, favourAmt: 50, weight: 50,
+    links: EXAMPLE.map(([loc, mons, dead], i) => ({
+      id: 'ex' + i, loc, mons: mons.map(([sp, plan]) => ({ sp, plan })), dead: !!dead, lock: false,
+    })),
+  };
+}
+const str = (x, max) => (typeof x === 'string' ? x : '').slice(0, max);
+function sanitizeMon(m) {
+  m = m && typeof m === 'object' ? m : {};
+  let sp = str(m.sp, 40).trim();
+  let plan = str(m.plan, 40).trim();
+  const i = lookup(sp);
+  if (i !== null && i >= 0) {
+    if (SP[i].m) { plan = SP[i].n; sp = SP[SP[i].base].n; } else sp = SP[i].n;
+  }
+  const p = lookup(plan);
+  if (p !== null && p >= 0) plan = SP[p].n;
+  return { sp, plan };
+}
+function sanitize(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  let src = raw;
+  if (!Array.isArray(raw.links) && Array.isArray(raw.pairs)) {
+    // Migrate the v1 two-player shape.
+    const bias = clamp(Number(raw.bias) || 50, 0, 100);
+    const rounded = Math.round(bias);
+    src = {
+      example: false, n: 2, game: raw.game, players: [raw.p1, raw.p2, DEFAULT_NAMES[2]], rule: raw.rule, megas: raw.megas,
+      favour: rounded === 50 ? -1 : rounded < 50 ? 0 : 1,
+      favourAmt: Math.max(10, Math.abs(bias - 50) * 2),
+      weight: raw.weight,
+      links: raw.pairs.map((p) => p && typeof p === 'object' ? {
+        id: p.id, loc: p.loc, dead: p.dead, lock: p.lock, mons: [p.a, p.b, emptyMon()],
+      } : null),
+    };
+  } else if (!Array.isArray(raw.links)) {
+    return null;
+  }
+  const n = Number(src.n) === 3 ? 3 : 2;
+  const game = String(clamp(Math.round(Number(src.game)) || 3, 1, 9));
+  const names = Array.isArray(src.players) ? src.players : [];
+  const players = range(3).map((i) => { const s = str(names[i], 24).trim(); return s || DEFAULT_NAMES[i]; });
+  const rule = RULES.includes(src.rule) ? src.rule : 'cross';
+  let favour = Math.round(Number(src.favour));
+  if (!(favour >= 0 && favour < 3)) favour = -1;
+  if (favour >= n) favour = -1;
+  const favourAmt = clamp(Math.round((Number(src.favourAmt) || 50) / 10) * 10, 10, 100);
+  const w = Number(src.weight);
+  const weight = clamp(Math.round((Number.isFinite(w) ? w : 50) / 5) * 5, 0, 100);
+  const seen = new Set();
+  const links = src.links.filter((l) => l && typeof l === 'object').slice(0, 200).map((l) => {
+    let id = str(l.id, 40);
+    if (!id || seen.has(id)) id = newId();
+    seen.add(id);
+    const mons = range(3).map((i) => sanitizeMon(Array.isArray(l.mons) ? l.mons[i] : null));
+    const dead = !!l.dead;
+    return { id, loc: str(l.loc, 40), mons, dead, lock: !!l.lock && !dead };
+  });
+  return { v: 2, example: !!src.example, n, game, players, rule, megas: !!src.megas, favour, favourAmt, weight, links };
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) { const s = sanitize(JSON.parse(raw)); if (s) return s; }
+  } catch (e) { /* storage unavailable */ }
+  return exampleState();
+}
+let state = loadState();
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } }
+
+// ---------- Link analysis ----------
+const pcVar = (i) => 'var(--p' + (i + 1) + ')';
+const gen = () => Number(state.game);
+function monInfo(mon, g, megas) {
+  const c = lookup(mon.sp);
+  if (c === null) return { empty: true };
+  if (c < 0) return { unknown: true };
+  if (!isAvail(c, g)) return { c, notgame: true };
+  const p = effPlan(c, mon.plan, g, megas);
+  const mega = !!SP[p].m;
+  const types = typesOf(p, g);
+  const bst = bstOf(p, g);
+  const baseBst = mega ? bstOf(SP[p].base, g) : bst;
+  return { c, p, mega, types, prim: types[0], bst, baseBst, name: SP[p].n };
+}
+function analyseLink(link, st) {
+  const g = Number(st.game);
+  const N = st.n;
+  const mons = range(N).map((i) => monInfo(link.mons[i], g, st.megas));
+  let status = 'ok', msg = 'Usable link';
+  const missing = range(N).filter((i) => mons[i].empty).map((i) => st.players[i]);
+  if (missing.length) { status = 'incomplete'; msg = incompleteMsg(missing); }
+  else if (mons.some((m) => m.unknown)) { status = 'unknown'; msg = 'Pokémon name not recognised'; }
+  else if (mons.some((m) => m.notgame)) { status = 'notgame'; msg = 'Not available in this generation'; }
+  else if (link.dead) { status = 'dead'; msg = 'Dead'; }
+  else if (st.rule !== 'none') {
+    outer: for (let a = 0; a < N; a++) for (let b = a + 1; b < N; b++) {
+      if (mons[a].prim === mons[b].prim) {
+        status = 'clash';
+        msg = mons[a].name + ' and ' + mons[b].name + ' are both primary ' + TYPES[mons[a].prim] + ', so this link can never be used';
+        break outer;
+      }
+    }
+  }
+  return { link, mons, status, msg };
+}
+function incompleteMsg(names) {
+  return 'Still needs ' + joinNames(names.map((n) => n + "'s")) + ' Pokémon';
+}
+
+// ---------- Scoring ----------
+function playerWeights(st) {
+  const N = st.n;
+  if (st.favour < 0 || st.favour >= N) return range(N).map(() => 1 / N);
+  const top = 1 / N + (st.favourAmt / 100) * (1 - 1 / N);
+  return range(N).map((i) => (i === st.favour ? top : (1 - top) / (N - 1)));
+}
+function sideEval(members, g, wt) {
+  let sum = 0, boost = 0, megaCount = 0;
+  for (const m of members) {
+    if (m.mega) { megaCount++; sum += scaleBst(m.baseBst); boost = Math.max(boost, scaleBst(m.bst) - scaleBst(m.baseBst)); }
+    else sum += scaleBst(m.bst);
+  }
+  const power = members.length ? (sum + boost) / members.length : 0;
+  const chart = chartOf(g);
+  const types = genTypeList(g);
+  const uncovered = [];
+  let covered = 0;
+  for (const d of types) {
+    if (members.some((m) => m.types.some((a) => chart[a][d] === 2))) covered++;
+    else uncovered.push(d);
+  }
+  const cov = covered / types.length;
+  let pen = 0;
+  const weak = [];
+  for (const a of types) {
+    let w = 0, r = 0;
+    for (const m of members) {
+      const mult = m.types.reduce((x, d) => x * chart[a][d], 1);
+      if (mult > 1) w++; else if (mult < 1) r++;
+    }
+    if (w >= 3 && r === 0) { pen += 1; weak.push({ t: a, w, r, sev: 'bad' }); }
+    else if (w >= 2 && r === 0) { pen += 0.35; weak.push({ t: a, w, r, sev: 'warn' }); }
+    else if (w >= 3) { pen += 0.2; weak.push({ t: a, w, r, sev: 'warn' }); }
+  }
+  const def = Math.max(0, 1 - pen / 3);
+  const synergy = 100 * (0.5 * cov + 0.5 * def);
+  const score = (1 - wt) * power + wt * synergy;
+  return { power, synergy, score, cov, uncovered, weak, megaCount };
+}
+
+// ---------- Optimiser ----------
+function optimise(st) {
+  const g = Number(st.game);
+  const N = st.n;
+  const wt = st.weight / 100;
+  const weights = playerWeights(st);
+  const infos = st.links.map((l) => analyseLink(l, st));
+  const ok = infos.filter((x) => x.status === 'ok');
+  for (const x of ok) x.pw = range(N).reduce((s, i) => s + weights[i] * scaleBst(x.mons[i].bst), 0);
+
+  const used = range(N).map(() => new Map());
+  const canAdd = (x) => {
+    if (st.rule === 'none') return true;
+    for (let i = 0; i < N; i++) {
+      const t = x.mons[i].prim;
+      for (let j = 0; j < N; j++) {
+        if (st.rule === 'cross' && j === i) continue;
+        if (used[j].get(t)) return false;
+      }
+    }
+    return true;
+  };
+  const add = (x, d) => { for (let i = 0; i < N; i++) { const t = x.mons[i].prim; used[i].set(t, (used[i].get(t) || 0) + d); } };
+
+  const pinned = [], conflicts = [];
+  for (const x of ok) {
+    if (!x.link.lock) continue;
+    if (pinned.length < 6 && canAdd(x)) { pinned.push(x); add(x, 1); }
+    else conflicts.push(x);
+  }
+  const conflictSet = new Set(conflicts);
+  const cands = ok.filter((x) => !x.link.lock).map((x, i) => ({ x, i }))
+    .sort((a, b) => (b.x.pw - a.x.pw) || (a.i - b.i)).map((o) => o.x);
+  const P = pinned.length;
+  const pinnedSum = pinned.reduce((s, x) => s + x.pw, 0);
+
+  let top = [];
+  let nodes = 0, quick = false, K = 0;
+  const evaluate = (chosen) => {
+    const team = pinned.concat(chosen);
+    const sides = range(N).map((i) => sideEval(team.map((x) => x.mons[i]), g, wt));
+    let score = 0, raw = 0, bal = 0;
+    sides.forEach((s, i) => { score += weights[i] * s.score; raw += weights[i] * s.power; bal += weights[i] * s.synergy; });
+    if (top.length === 5 && score <= top[4].score) return;
+    top.push({ team, sides, score, raw, bal });
+    top.sort((a, b) => b.score - a.score);
+    if (top.length > 5) top.length = 5;
+  };
+  const Kmax = Math.min(6, P + cands.length);
+  for (K = Kmax; K >= P && K > 0; K--) {
+    const need = K - P;
+    const chosen = [];
+    const dfs = (start, sum) => {
+      if (quick) return;
+      if (++nodes > NODE_CAP) { quick = true; return; }
+      const r = need - chosen.length;
+      if (r === 0) { evaluate(chosen.slice()); return; }
+      if (cands.length - start < r) return;
+      if (top.length === 5) {
+        let ub = sum;
+        for (let k = start; k < start + r; k++) ub += cands[k].pw;
+        if ((1 - wt) * ub / K + wt * 100 <= top[4].score) return;
+      }
+      for (let i = start; i <= cands.length - r; i++) {
+        const c = cands[i];
+        if (!canAdd(c)) continue;
+        add(c, 1); chosen.push(c);
+        dfs(i + 1, sum + c.pw);
+        chosen.pop(); add(c, -1);
+        if (quick) return;
+      }
+    };
+    dfs(0, pinnedSum);
+    if (top.length) break;
+  }
+  if (!top.length) K = 0;
+  return { infos, ok, top, K, quick, conflicts, conflictSet, weights, N, g };
+}
+
+// ---------- Rendering: settings ----------
+function typeChip(t) { return h('span', { class: 'chip' + (DARK_TEXT.has(t) ? ' dk' : ''), style: 'background:' + TYPE_COLORS[t] }, TYPES[t]); }
+function setPressed(btn, on) { btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+function renderSettings() {
+  const sel = $('game');
+  if (!sel.options.length) for (const [g, label] of GAMES) sel.append(h('option', { value: g }, 'Gen ' + g + ' · ' + label));
+  sel.value = state.game;
+  setPressed($('players-2'), state.n === 2); setPressed($('players-3'), state.n === 3);
+  for (const r of RULES) setPressed($('rule-' + r), state.rule === r);
+  $('ruleHint').textContent = state.rule === 'cross'
+    ? 'A primary type used by one player is off-limits to the others. Repeats on your own team are fine.'
+    : state.rule === 'strict' ? 'All ' + (6 * state.n) + ' Pokémon need different primary types, even within one team.'
+      : 'No type clause. Any link can be used, as long as everyone is alive.';
+  setPressed($('megas-off'), !state.megas); setPressed($('megas-on'), state.megas);
+  renderNameInputs();
+  renderFavour();
+  $('weight').value = state.weight;
+  $('weightOut').textContent = (100 - state.weight) + ' / ' + state.weight;
+}
+function renderNameInputs() {
+  const box = $('nameInputs');
+  for (let i = 0; i < 3; i++) {
+    let row = $('nameRow' + i);
+    if (!row) {
+      row = h('div', { class: 'name-row', id: 'nameRow' + i, style: '--pc:' + pcVar(i) },
+        h('label', { class: 'sr-only', for: 'name' + i }, 'Player ' + (i + 1) + ' name'),
+        h('input', { type: 'text', id: 'name' + i, maxlength: '24', autocomplete: 'off', 'aria-label': null }));
+      box.append(row);
+      const input = row.querySelector('input');
+      input.value = state.players[i];
+      input.addEventListener('input', () => {
+        state.players[i] = input.value.slice(0, 24);
+        onNamesChanged();
+      });
+      input.addEventListener('change', () => {
+        if (!input.value.trim()) { state.players[i] = DEFAULT_NAMES[i]; input.value = DEFAULT_NAMES[i]; }
+        else { state.players[i] = input.value.trim().slice(0, 24); input.value = state.players[i]; }
+        onNamesChanged();
+      });
+    }
+    row.hidden = i >= state.n;
+    const input = row.querySelector('input');
+    if (document.activeElement !== input) input.value = state.players[i];
+    row.querySelector('label').textContent = 'Player ' + (i + 1) + ' name';
+  }
+}
+const pname = (i) => (state.players[i] || '').trim() || DEFAULT_NAMES[i];
+function renderFavour() {
+  const seg = $('favourSeg');
+  const focusedId = document.activeElement && seg.contains(document.activeElement) ? document.activeElement.id : null;
+  seg.replaceChildren(
+    h('button', { type: 'button', id: 'favour-even', 'aria-pressed': state.favour < 0 ? 'true' : 'false', onclick: () => setFavour(-1) }, 'Even'),
+    ...range(state.n).map((i) => h('button', { type: 'button', id: 'favour-' + i, 'aria-pressed': state.favour === i ? 'true' : 'false', onclick: () => setFavour(i) }, pname(i))));
+  if (focusedId && $(focusedId)) $(focusedId).focus();
+  const wrap = $('favourAmtWrap');
+  wrap.hidden = state.favour < 0;
+  $('favourAmt').value = state.favourAmt;
+  if (state.favour >= 0) {
+    const top = playerWeights(state)[state.favour];
+    $('favourOut').textContent = Math.round(top * 100) + '% weight on ' + pname(state.favour);
+  }
+}
+function setFavour(i) { state.favour = i; renderFavour(); changed(); }
+function onNamesChanged() {
+  renderFavour();
+  for (const card of $('encList').children) updateCard(card);
+  changed();
+}
+
+// ---------- Rendering: encounter editor ----------
+let datalistKey = '';
+function renderDatalist() {
+  const key = state.game + '|' + state.megas;
+  if (key === datalistKey) return;
+  datalistKey = key;
+  const g = gen();
+  const frag = document.createDocumentFragment();
+  SP.forEach((s, i) => {
+    if (s.m && !state.megas) return;
+    if (!isAvail(i, g)) return;
+    frag.append(h('option', { value: s.n }));
+  });
+  $('speciesList').replaceChildren(frag);
+}
+const linkById = (id) => state.links.find((l) => l.id === id);
+function buildCard(link) {
+  const id = link.id;
+  const cols = h('div', { class: 'cols' });
+  for (let i = 0; i < 3; i++) {
+    cols.append(h('div', { class: 'col', 'data-p': i, style: '--pc:' + pcVar(i) },
+      h('label', { class: 'plabel', for: 'sp-' + id + '-' + i }),
+      h('input', { type: 'text', id: 'sp-' + id + '-' + i, list: 'speciesList', autocomplete: 'off', spellcheck: 'false', maxlength: '40', 'data-act': 'sp', 'data-p': i, placeholder: 'Pokémon' }),
+      h('label', { class: 'sr-only', for: 'plan-' + id + '-' + i }),
+      h('select', { id: 'plan-' + id + '-' + i, 'data-act': 'plan', 'data-p': i }),
+      h('div', { class: 'info', 'aria-live': 'polite' })));
+  }
+  const card = h('article', { class: 'enc', 'data-id': id },
+    h('div', { class: 'enc-top' },
+      h('div', { class: 'enc-loc' },
+        h('label', { class: 'flabel', for: 'loc-' + id }, 'Route or area'),
+        h('input', { type: 'text', id: 'loc-' + id, maxlength: '40', autocomplete: 'off', 'data-act': 'loc', placeholder: 'Route or area' })),
+      h('div', { class: 'enc-actions' },
+        h('button', { type: 'button', class: 'btn small tog-dead', id: 'dead-' + id, 'data-act': 'dead' }),
+        h('button', { type: 'button', class: 'btn small tog-pin', id: 'pin-' + id, 'data-act': 'pin' }),
+        h('button', { type: 'button', class: 'btn small danger-outline', id: 'rm-' + id, 'data-act': 'rm' }, 'Remove'))),
+    cols,
+    h('p', { class: 'status' }));
+  card.querySelector('[data-act=loc]').value = link.loc;
+  for (let i = 0; i < 3; i++) card.querySelector('#sp-' + CSS.escape(id) + '-' + i).value = link.mons[i].sp;
+  updateCard(card);
+  return card;
+}
+function updateCard(card) {
+  const link = linkById(card.dataset.id);
+  if (!link) return;
+  const g = gen();
+  const N = state.n;
+  const info = analyseLink(link, state);
+  card.classList.toggle('is-clash', info.status === 'clash');
+  card.classList.toggle('is-dead', link.dead);
+  const dead = card.querySelector('[data-act=dead]');
+  dead.textContent = link.dead ? 'Dead' : 'Alive'; setPressed(dead, link.dead);
+  const pin = card.querySelector('[data-act=pin]');
+  pin.textContent = link.lock ? 'Pinned' : 'Pin'; setPressed(pin, link.lock);
+  const cols = card.querySelector('.cols');
+  cols.className = 'cols n' + N; cols.style.setProperty('--n', N);
+  cols.querySelectorAll('.col').forEach((col) => {
+    const i = Number(col.dataset.p);
+    col.hidden = i >= N;
+    if (i >= N) return;
+    const mon = link.mons[i];
+    col.querySelector('.plabel').textContent = pname(i);
+    const sel = col.querySelector('select');
+    sel.previousElementSibling.textContent = 'Planned form for ' + pname(i);
+    const c = lookup(mon.sp);
+    const box = col.querySelector('.info');
+    box.replaceChildren();
+    if (c === null) { sel.hidden = true; sel.replaceChildren(); return; }
+    if (c < 0) { sel.hidden = true; sel.replaceChildren(); box.append(h('span', { class: 'err' }, 'Not found. Check the spelling.')); return; }
+    if (!isAvail(c, g)) { sel.hidden = true; sel.replaceChildren(); box.append(h('span', { class: 'err' }, 'Not in Gen ' + g + ' games')); return; }
+    const opts = planOptions(c, g, state.megas);
+    const p = effPlan(c, mon.plan, g, state.megas);
+    const sig = opts.map((o) => o.i).join(',');
+    if (sel.dataset.sig !== sig) {
+      sel.replaceChildren(...opts.map((o) => h('option', { value: o.i }, o.label)));
+      sel.dataset.sig = sig;
+    }
+    sel.value = String(p);
+    sel.hidden = opts.length <= 1;
+    box.append(h('span', { class: 'chips' }, typesOf(p, g).map(typeChip)), h('span', { class: 'bst' }, 'BST ' + bstOf(p, g)));
+    if (SP[p].m) box.append(h('span', { class: 'flag gold' }, 'Mega'));
+  });
+  const st = card.querySelector('.status');
+  st.textContent = info.msg;
+  st.className = 'status ' + (info.status === 'ok' ? 'ok' : info.status === 'clash' || info.status === 'dead' ? 'bad' : 'no');
+}
+function renderEditor() {
+  renderDatalist();
+  const list = $('encList');
+  const existing = new Map([...list.children].map((c) => [c.dataset.id, c]));
+  const frag = [];
+  for (const link of state.links) {
+    let card = existing.get(link.id);
+    if (card) { existing.delete(link.id); updateCard(card); } else card = buildCard(link);
+    frag.push(card);
+  }
+  for (const c of existing.values()) c.remove();
+  frag.forEach((c, i) => { if (list.children[i] !== c) list.insertBefore(c, list.children[i] || null); });
+}
+function refreshCards() { for (const card of $('encList').children) updateCard(card); }
+function addEncounter() {
+  const link = { id: newId(), loc: '', mons: range(3).map(emptyMon), dead: false, lock: false };
+  state.links.push(link);
+  renderEditor();
+  changed();
+  const loc = $('loc-' + link.id);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  loc.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+  loc.focus({ preventScroll: true });
+}
+const confirmTimers = new WeakMap();
+function twoTap(btn, label, ms, normal, action) {
+  if (btn.dataset.confirming === '1') {
+    clearTimeout(confirmTimers.get(btn));
+    btn.dataset.confirming = ''; btn.classList.remove('confirming'); btn.textContent = normal;
+    action();
+    return;
+  }
+  btn.dataset.confirming = '1'; btn.classList.add('confirming'); btn.textContent = label;
+  confirmTimers.set(btn, setTimeout(() => {
+    btn.dataset.confirming = ''; btn.classList.remove('confirming'); btn.textContent = normal;
+  }, ms));
+}
+function onEditorInput(e) {
+  const el = e.target;
+  const card = el.closest('.enc');
+  if (!card) return;
+  const link = linkById(card.dataset.id);
+  if (!link) return;
+  const act = el.dataset.act;
+  if (act === 'loc') { link.loc = el.value.slice(0, 40); changed(); return; }
+  if (act === 'sp') {
+    const i = Number(el.dataset.p);
+    const mon = link.mons[i];
+    const before = lookup(mon.sp);
+    const idx = lookup(el.value);
+    mon.sp = el.value.slice(0, 40);
+    if (idx !== null && idx >= 0) {
+      if (SP[idx].m) {
+        mon.sp = SP[SP[idx].base].n;
+        mon.plan = SP[idx].n;
+        el.value = mon.sp;
+        if (!state.megas) { state.megas = true; renderSettings(); renderDatalist(); refreshCards(); }
+      } else if (idx !== before) {
+        mon.plan = SP[autoPlan(idx, gen())].n;
+      }
+    }
+    updateCard(card);
+    changed();
+    return;
+  }
+  if (act === 'plan' && e.type === 'change') {
+    const i = Number(el.dataset.p);
+    link.mons[i].plan = SP[Number(el.value)].n;
+    updateCard(card);
+    changed();
+  }
+}
+function onEditorChange(e) {
+  const el = e.target;
+  if (el.dataset.act === 'sp') {
+    const card = el.closest('.enc');
+    const link = linkById(card.dataset.id);
+    const mon = link.mons[Number(el.dataset.p)];
+    const idx = lookup(el.value);
+    if (idx !== null && idx >= 0 && !SP[idx].m) { el.value = SP[idx].n; mon.sp = SP[idx].n; }
+    else if (idx === null) { el.value = ''; mon.sp = ''; }
+    updateCard(card);
+    changed();
+  } else if (el.dataset.act === 'loc') {
+    const link = linkById(el.closest('.enc').dataset.id);
+    link.loc = el.value.trim().slice(0, 40);
+    changed();
+  } else onEditorInput(e);
+}
+function onEditorClick(e) {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const card = btn.closest('.enc');
+  const link = linkById(card.dataset.id);
+  if (!link) return;
+  const act = btn.dataset.act;
+  if (act === 'dead') { link.dead = !link.dead; if (link.dead) link.lock = false; updateCard(card); changed(); }
+  else if (act === 'pin') { link.lock = !link.lock; if (link.lock) link.dead = false; updateCard(card); changed(); }
+  else if (act === 'rm') {
+    twoTap(btn, 'Tap to confirm', 3500, 'Remove', () => {
+      state.links = state.links.filter((l) => l !== link);
+      renderEditor(); changed();
+    });
+  }
+}
+
+// ---------- Rendering: results ----------
+let selectedTeam = 0;
+let lastResult = null;
+function renderHero(res) {
+  const N = state.n;
+  const svg = $('cable');
+  const ns = 'http://www.w3.org/2000/svg';
+  const path = document.createElementNS(ns, 'path');
+  let d = 'M 12 17';
+  for (let x = 12; x < 588; x += 48) d += ' q 12 -11 24 0 t 24 0';
+  path.setAttribute('d', d);
+  const xs = N === 3 ? [12, 300, 588] : [12, 588];
+  const cols = N === 3 ? [0, 1, 2] : [0, 1];
+  svg.replaceChildren(path, ...xs.map((x, k) => {
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', 17); c.setAttribute('r', 9);
+    c.setAttribute('style', 'fill:' + pcVar(cols[k]));
+    return c;
+  }));
+  const names = range(N).map((i) => h('strong', { class: 'c' + (i + 1) }, pname(i)));
+  const k = res.top.length ? res.top[0].team.length : 0;
+  const phrase = state.rule === 'cross' ? 'with no primary type shared between teams'
+    : state.rule === 'strict' ? 'with every primary type different across all teams' : 'with no type clause';
+  $('lede').replaceChildren(...joinNodes(names), ' can field ',
+    h('strong', null, k + ' linked encounter' + (k === 1 ? '' : 's')),
+    ' from ' + res.ok.length + ' usable, ' + phrase + '.');
+  $('exampleNote').hidden = !state.example;
+}
+function monCard(m, i) {
+  const caught = SP[m.c].n;
+  return h('div', { class: 'mon', style: '--pc:' + pcVar(i) },
+    h('span', { class: 'mn' }, m.name),
+    m.p !== m.c ? h('span', { class: 'from' }, 'from ' + caught) : null,
+    h('span', { class: 'chips' }, m.types.map(typeChip), m.mega ? h('span', { class: 'flag gold' }, 'Mega') : null),
+    h('span', { class: 'bst' }, 'BST ' + m.bst));
+}
+function note(flag, cls, text) { return h('div', { class: 'note' }, h('span', { class: 'flag ' + cls }, flag), h('p', null, text)); }
+function renderBest(res) {
+  const N = state.n;
+  $('bestTitle').textContent = state.rule === 'none' ? 'Best team' : 'Best legal team';
+  if (selectedTeam >= res.top.length) selectedTeam = 0;
+  const team = res.top[selectedTeam];
+  $('tabs').replaceChildren(...res.top.map((t, i) => h('button', {
+    type: 'button', class: 'tab', id: 'team-tab-' + i, 'aria-pressed': i === selectedTeam ? 'true' : 'false',
+    onclick: () => { selectedTeam = i; renderResults(lastResult); $('team-tab-' + i).focus(); },
+  }, (i === 0 ? 'Best' : 'Option ' + (i + 1)) + ' · ' + Math.round(t.score))));
+  $('tabs').hidden = res.top.length < 2;
+  if (!team) {
+    $('tiles').replaceChildren();
+    $('notes').replaceChildren(...conflictNotes(res));
+    $('teamRows').replaceChildren(h('p', { class: 'empty' }, 'No usable links yet. Give every player a Pokémon in an encounter that is alive and fits the type rule.'));
+    return;
+  }
+  const tile = (label, val, cls, style) => h('div', { class: 'tile ' + (cls || ''), style }, h('span', { class: 'tl' }, label), h('span', { class: 'tv' }, String(Math.round(val))));
+  $('tiles').replaceChildren(
+    tile('Team score', team.score, 'dark'), tile('Raw stats', team.raw), tile('Type balance', team.bal),
+    ...range(N).map((i) => tile(pname(i) + "'s team", team.sides[i].score, 'side', '--pc:' + pcVar(i))));
+  const notes = conflictNotes(res);
+  if (res.quick) notes.push(note('Quick search', 'warn', 'There are a lot of possible teams, so the search stopped early. These picks are very good but may not be the very best.'));
+  if (team.team.length < 6) notes.push(note(team.team.length + ' of 6', 'warn', 'Only ' + team.team.length + ' link' + (team.team.length === 1 ? '' : 's') + ' fit together under the current rule, so the team has empty slots.'));
+  range(N).forEach((i) => {
+    const c = team.sides[i].megaCount;
+    if (c > 1) notes.push(note(c + ' Megas', 'gold', pname(i) + ' has ' + c + ' Megas planned. Only one can Mega Evolve per battle, so the score counts just the strongest one.'));
+  });
+  $('notes').replaceChildren(...notes);
+  const inTeam = new Set(team.team);
+  const rows = res.infos.filter((x) => inTeam.has(x));
+  const wrap = h('div', { class: 'rows n' + N },
+    h('div', { class: 'rowhead', 'aria-hidden': 'true' }, ...range(N).flatMap((i) => [i > 0 ? h('span') : null, h('span', { class: 'c' + (i + 1) }, pname(i))])));
+  for (const x of rows) {
+    const bsts = x.mons.map((m) => m.bst);
+    const lop = Math.max(...bsts) - Math.min(...bsts) >= 150;
+    const pin = h('button', { type: 'button', class: 'pill', id: 'team-pin-' + x.link.id, 'aria-pressed': x.link.lock ? 'true' : 'false',
+      onclick: () => togglePin(x.link.id, 'team-pin-' + x.link.id) }, x.link.lock ? 'Pinned' : 'Pin');
+    wrap.append(h('div', { class: 'trow' },
+      h('div', { class: 'trow-meta' }, h('span', null, x.link.loc || 'No location'), pin, lop ? h('span', { class: 'flag warn' }, 'Lopsided link') : null),
+      h('div', { class: 'mons' }, ...x.mons.flatMap((m, i) => [i > 0 ? h('div', { class: 'knot', 'aria-hidden': 'true' }, h('i')) : null, monCard(m, i)]))));
+  }
+  $('teamRows').replaceChildren(wrap);
+}
+function conflictNotes(res) {
+  return res.conflicts.map((x) => note('Pinned link skipped', 'bad',
+    (x.link.loc || 'An unnamed encounter') + ' is pinned but cannot join the team: ' + blockReason(x, res.top[selectedTeam] || { team: [] }, res) + '.'));
+}
+function blockReason(x, team, res) {
+  const N = state.n;
+  const parts = [];
+  for (let i = 0; i < N; i++) {
+    const m = x.mons[i];
+    for (const y of team.team) {
+      if (y === x) continue;
+      for (let j = 0; j < N; j++) {
+        if (y.mons[j].prim !== m.prim) continue;
+        if (state.rule === 'cross' && j !== i) parts.push(m.name + ' (' + TYPES[m.prim] + ') clashes with ' + pname(j) + "'s " + y.mons[j].name);
+        if (state.rule === 'strict') parts.push(m.name + ' (' + TYPES[m.prim] + ') repeats ' + y.mons[j].name);
+      }
+    }
+  }
+  if (!parts.length && res.conflictSet.has(x)) return 'six links are already pinned';
+  return parts.join('; ');
+}
+function togglePin(id, focusId) {
+  const link = linkById(id);
+  if (!link) return;
+  link.lock = !link.lock;
+  if (link.lock) link.dead = false;
+  refreshCards();
+  changed(true);
+  if (focusId && $(focusId)) $(focusId).focus();
+}
+function renderBoard(res) {
+  const N = state.n;
+  const g = gen();
+  const team = res.top[selectedTeam];
+  const byType = new Map();
+  if (team) for (const x of team.team) x.mons.forEach((m, i) => {
+    if (!byType.has(m.prim)) byType.set(m.prim, []);
+    byType.get(m.prim).push({ i, name: m.name });
+  });
+  const types = genTypeList(g);
+  $('legend').replaceChildren(...range(N).map((i) => h('span', { style: '--pc:' + pcVar(i) }, h('i'), pname(i))));
+  $('board').replaceChildren(...types.map((t) => {
+    const users = byType.get(t) || [];
+    const players = new Set(users.map((u) => u.i));
+    return h('div', { class: 'cell' + (players.size > 1 ? ' shared' : '') },
+      h('span', { class: 'ct' }, h('span', { class: 'dot', style: 'background:' + TYPE_COLORS[t] }), TYPES[t]),
+      users.length ? h('span', { class: 'cu' }, ...joinNodes(users.map((u) => h('span', { class: 'c' + (u.i + 1) }, u.name)), ', '))
+        : h('span', { class: 'free' }, 'Free'));
+  }));
+  const noteBox = $('boardNote');
+  const list = (ts) => ts.length ? ts.map((t) => TYPES[t]).join(', ') : 'none';
+  if (state.rule === 'cross') {
+    const lines = range(N).map((i) => {
+      const blocked = types.filter((t) => (byType.get(t) || []).some((u) => u.i !== i));
+      return h('p', null, h('strong', { class: 'c' + (i + 1) }, pname(i)), blocked.length
+        ? ' can add any primary type except ' + list(blocked) + '.' : ' can add any primary type.');
+    });
+    const free = types.filter((t) => !byType.has(t));
+    lines.push(h('p', null, 'Untouched by everyone: ' + list(free) + '.'));
+    noteBox.replaceChildren(...lines);
+  } else if (state.rule === 'strict') {
+    const free = types.filter((t) => !byType.has(t));
+    noteBox.replaceChildren(h('p', null, 'Still open for new links: ' + list(free) + '. A new link fits this team only if all of its primary types are in that list and different from each other.'));
+  } else {
+    noteBox.replaceChildren(h('p', null, 'The type clause is off, so any link fits. The board just shows who is using which primary type.'));
+  }
+}
+function renderChecks(res) {
+  const N = state.n;
+  const team = res.top[selectedTeam];
+  if (!team) { $('checks').replaceChildren(h('p', { class: 'empty' }, 'Team checks appear once a team can be built.')); return; }
+  $('checks').replaceChildren(...range(N).map((i) => {
+    const s = team.sides[i];
+    const pct = Math.round(s.cov * 100);
+    return h('div', { class: 'check', style: '--pc:' + pcVar(i) },
+      h('h3', null, pname(i) + "'s team"),
+      h('span', { class: 'sub' }, 'Shared weak spots'),
+      s.weak.length ? h('div', { class: 'weak' }, s.weak.map((wk) => h('span', null, typeChip(wk.t),
+        h('span', { class: wk.sev === 'bad' ? 'bad' : '' }, wk.w + ' weak' + (wk.r ? ', ' + wk.r + ' resist' : '')))))
+        : h('div', null, h('span', { class: 'flag good' }, 'No stacked weaknesses')),
+      h('span', { class: 'sub' }, "Can't hit super effectively with STAB (" + pct + '% covered)'),
+      s.uncovered.length ? h('div', { class: 'chips' }, s.uncovered.map(typeChip)) : h('div', { class: 'hint' }, 'Hits every type'));
+  }));
+}
+function renderBench(res) {
+  const N = state.n;
+  const team = res.top[selectedTeam] || { team: [] };
+  const inTeam = new Set(team.team);
+  const items = res.infos.filter((x) => !inTeam.has(x)).map((x) => {
+    const names = range(N).map((i) => {
+      const m = x.mons[i];
+      const label = m.name || (x.link.mons[i].sp || '?');
+      return h('span', { class: 'c' + (i + 1) }, label);
+    });
+    let reason, bad = false;
+    if (x.status !== 'ok') { reason = x.msg; bad = x.status === 'clash' || x.status === 'dead'; }
+    else {
+      const b = blockReason(x, team, res);
+      if (b) reason = 'Blocked: ' + b;
+      else reason = (state.rule === 'none' ? 'Usable' : 'Fits the rule') + ', but scores lower than the current picks';
+    }
+    return h('li', null,
+      h('span', { class: 'bl' }, h('strong', null, x.link.loc || 'No location'), ' · ', ...joinNodes(names, ' + ').map((n) => n === ', ' ? ' + ' : n)),
+      h('span', { class: 'br' + (bad ? ' bad' : '') }, reason));
+  });
+  $('bench').replaceChildren(...(items.length ? items : [h('li', { class: 'empty' }, 'Every usable link is on the team.')]));
+}
+function renderResults(res) {
+  renderHero(res);
+  renderBest(res);
+  renderBoard(res);
+  renderChecks(res);
+  renderBench(res);
+}
+let timer = null;
+function recompute() {
+  timer = null;
+  lastResult = optimise(state);
+  renderResults(lastResult);
+}
+function changed(now) {
+  save();
+  if (timer) clearTimeout(timer);
+  if (now) recompute(); else timer = setTimeout(recompute, 120);
+}
+
+// ---------- Save and share ----------
+function setStatus(msg) { $('saveStatus').textContent = msg; }
+async function copyData() {
+  const ta = $('runData');
+  ta.value = JSON.stringify(state);
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('no clipboard');
+    await navigator.clipboard.writeText(ta.value);
+    setStatus('Run data copied to the clipboard. It is also in the box below.');
+  } catch (e) {
+    ta.focus(); ta.select();
+    setStatus('The clipboard is blocked here, so the run data is selected in the box. Copy it with your keyboard or menu.');
+  }
+}
+function loadData() {
+  const text = $('runData').value.trim();
+  if (!text) { setStatus('Paste run data into the box first.'); return; }
+  let parsed;
+  try { parsed = JSON.parse(text); } catch (e) { setStatus('That is not valid run data. Check that you pasted all of it.'); return; }
+  const s = sanitize(parsed);
+  if (!s) { setStatus('That text does not look like Soul Link Planner run data.'); return; }
+  state = s;
+  state.example = false;
+  selectedTeam = 0;
+  renderAll();
+  changed(true);
+  setStatus('Loaded ' + state.links.length + ' encounter' + (state.links.length === 1 ? '' : 's') + '.');
+}
+function blankRun() {
+  state.links = [{ id: newId(), loc: 'Starter', mons: range(3).map(emptyMon), dead: false, lock: false }];
+  state.example = false;
+  selectedTeam = 0;
+  renderEditor();
+  changed(true);
+}
+
+// ---------- Wiring ----------
+function renderAll() { renderSettings(); renderEditor(); }
+$('game').addEventListener('change', (e) => { state.game = e.target.value; renderEditor(); refreshCards(); changed(); });
+for (const n of [2, 3]) $('players-' + n).addEventListener('click', () => {
+  state.n = n; if (state.favour >= n) state.favour = -1;
+  renderSettings(); refreshCards(); changed();
+});
+for (const r of RULES) $('rule-' + r).addEventListener('click', () => { state.rule = r; renderSettings(); refreshCards(); changed(); });
+$('megas-off').addEventListener('click', () => { state.megas = false; renderSettings(); renderDatalist(); refreshCards(); changed(); });
+$('megas-on').addEventListener('click', () => { state.megas = true; renderSettings(); renderDatalist(); refreshCards(); changed(); });
+$('favourAmt').addEventListener('input', (e) => { state.favourAmt = clamp(Number(e.target.value), 10, 100); renderFavour(); changed(); });
+$('weight').addEventListener('input', (e) => { state.weight = clamp(Number(e.target.value), 0, 100); $('weightOut').textContent = (100 - state.weight) + ' / ' + state.weight; changed(); });
+$('addTop').addEventListener('click', addEncounter);
+$('addBottom').addEventListener('click', addEncounter);
+const encList = $('encList');
+encList.addEventListener('input', onEditorInput);
+encList.addEventListener('change', onEditorChange);
+encList.addEventListener('click', onEditorClick);
+$('copyData').addEventListener('click', copyData);
+$('loadData').addEventListener('click', loadData);
+$('blankRun').addEventListener('click', (e) => twoTap(e.currentTarget, 'Tap again to erase every encounter', 4000, 'Start a blank run', () => { blankRun(); setStatus('Started a blank run. Your settings and names are kept.'); }));
+$('clearExample').addEventListener('click', blankRun);
+
+renderAll();
+recompute();
+</script>
+</body>
+</html>

@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soul Link Team Planner</title>
+<meta name="description" content="Pick the strongest legal team from your linked Soul Link Nuzlocke encounters.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #eceef5; --surface: #ffffff; --sunk: #e3e6f0; --ink: #191b29; --muted: #565b74; --line: #d2d6e3;
+  --p1: #cf3b30; --p2: #2763c9; --p3: #23874a; --link: #b07d0c;
+  --good: #0f7f86; --warn: #a86a10; --bad: #c22f2f;
+  --display: 'Pixelify Sans', ui-monospace, 'Courier New', monospace;
+  --body: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r-card: 10px; --r-input: 8px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11121b; --surface: #1b1d2a; --sunk: #151722; --ink: #eceef8; --muted: #a0a6bf; --line: #2f3246;
+    --p1: #ff6d60; --p2: #6ea2ff; --p3: #4fd083; --link: #e8b93c;
+    --good: #45c9d1; --warn: #e6a945; --bad: #ff6b6b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11121b; --surface: #1b1d2a; --sunk: #151722; --ink: #eceef8; --muted: #a0a6bf; --line: #2f3246;
+  --p1: #ff6d60; --p2: #6ea2ff; --p3: #4fd083; --link: #e8b93c;
+  --good: #45c9d1; --warn: #e6a945; --bad: #ff6b6b;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 1rem; line-height: 1.5; }
+.wrap { max-width: 1020px; margin: 0 auto; padding: 24px 16px 64px; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 7vw, 3.1rem); }
+h2 { font-size: 1.35rem; }
+h3 { font-size: 1.05rem; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.muted { color: var(--muted); }
+.c1 { color: var(--p1); } .c2 { color: var(--p2); } .c3 { color: var(--p3); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 18px 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* Hero */
+.hero { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+.cable { width: 100%; height: 34px; display: block; }
+.cable path { fill: none; stroke: var(--link); stroke-width: 2.5; stroke-dasharray: 7 6; stroke-linecap: round; }
+.cable circle { stroke: var(--surface); stroke-width: 3; }
+.h1-1 { color: var(--p1); } .h1-2 { color: var(--p2); } .h1-3 { color: var(--p3); }
+.lede { font-size: 1.1rem; max-width: 62ch; }
+.example-note { border: 2px dashed var(--link); border-radius: var(--r-card); padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; background: color-mix(in srgb, var(--link) 8%, var(--surface)); }
+.example-note p { flex: 1 1 260px; }
+
+/* Buttons */
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-input); padding: 7px 12px; cursor: pointer; font-weight: 700; font-size: .92rem; min-height: 38px; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+.btn.danger-outline { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 55%, var(--line)); }
+.btn.confirming { background: var(--bad); color: #fff; border-color: var(--bad); }
+.btn.small { min-height: 32px; padding: 4px 10px; font-size: .85rem; }
+.btn[aria-pressed="true"].tog-pin { background: var(--link); border-color: var(--link); color: #1b1b1b; }
+.btn[aria-pressed="true"].tog-dead { background: var(--bad); border-color: var(--bad); color: #fff; }
+
+/* Settings */
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px 20px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+.flabel { text-transform: uppercase; font-size: .8rem; letter-spacing: .07em; color: var(--muted); font-weight: 700; }
+.hint { font-size: .88rem; color: var(--muted); }
+input[type="text"], select, textarea { background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-input); padding: 8px 10px; min-height: 40px; width: 100%; min-width: 0; }
+input[type="text"]:hover, select:hover { border-color: var(--muted); }
+.name-inputs { display: flex; flex-direction: column; gap: 8px; }
+.name-row { display: flex; flex-direction: column; gap: 4px; }
+.name-row input { border-left: 4px solid var(--pc); }
+.seg { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: var(--r-input); overflow: hidden; background: var(--sunk); }
+.seg button { flex: 1 1 auto; border: 0; border-right: 1px solid var(--line); background: transparent; padding: 8px 10px; min-height: 40px; cursor: pointer; font-weight: 700; font-size: .9rem; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button:focus-visible { outline-offset: -3px; }
+.range-wrap { display: flex; flex-direction: column; gap: 4px; }
+.range-wrap input[type="range"] { width: 100%; accent-color: var(--link); margin: 0; min-height: 28px; }
+.range-labels { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; font-size: .85rem; color: var(--muted); align-items: baseline; }
+.range-labels span:last-child { text-align: right; }
+.range-labels output { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; text-align: center; }
+
+/* Chips and flags */
+.chips { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.chip { display: inline-block; color: #fff; text-transform: uppercase; font-weight: 700; font-size: .7rem; letter-spacing: .03em; padding: 2px 7px; border-radius: 999px; text-shadow: 0 1px 1px rgba(0,0,0,.35); line-height: 1.5; white-space: nowrap; }
+.chip.dk { color: #1b1b1b; text-shadow: 0 1px 0 rgba(255,255,255,.35); }
+.flag { display: inline-block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.flag.gold { color: var(--link); }
+.flag.bad { color: var(--bad); }
+.flag.warn { color: var(--warn); }
+.flag.good { color: var(--good); }
+.bst { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.err { color: var(--bad); font-size: .88rem; font-weight: 700; }
+
+/* Encounter editor */
+.enc-list { display: flex; flex-direction: column; gap: 14px; }
+.enc { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.enc.is-clash { border: 2px solid var(--bad); }
+.enc.is-dead { background: var(--sunk); }
+.enc-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.enc-loc { flex: 1 1 200px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.enc-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.cols { display: grid; gap: 12px; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
+@media (max-width: 419.98px) { .cols.n2 { grid-template-columns: 1fr; } }
+@media (max-width: 559.98px) { .cols.n3 { grid-template-columns: 1fr; } }
+.col { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding-left: 10px; border-left: 3px solid var(--pc); }
+.plabel { color: var(--pc); font-weight: 700; font-size: .9rem; overflow-wrap: anywhere; }
+.info { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 24px; }
+.status { font-size: .9rem; font-weight: 700; }
+.status.ok { color: var(--good); }
+.status.no { color: var(--muted); }
+.status.bad { color: var(--bad); }
+
+/* Results */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { border: 1px solid var(--line); background: var(--sunk); border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: .88rem; cursor: pointer; min-height: 34px; font-variant-numeric: tabular-nums; }
+.tab[aria-pressed="true"] { background: var(--link); border-color: var(--link); color: #1b1b1b; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.tile { background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-card); padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tile .tl { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; overflow-wrap: anywhere; }
+.tile .tv { font-family: var(--display); font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tile.dark { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.tile.dark .tl { color: color-mix(in srgb, var(--bg) 75%, var(--ink)); }
+.tile.side { border-bottom: 3px solid var(--pc); }
+.notes { display: flex; flex-direction: column; gap: 8px; }
+.note { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; font-size: .92rem; }
+.note p { flex: 1 1 220px; }
+.rows { display: flex; flex-direction: column; gap: 10px; }
+.rowhead, .mons { display: grid; gap: 0; align-items: stretch; }
+.n2 .rowhead, .n2 .mons { grid-template-columns: minmax(0,1fr) 40px minmax(0,1fr); }
+.n3 .rowhead, .n3 .mons { grid-template-columns: minmax(0,1fr) 30px minmax(0,1fr) 30px minmax(0,1fr); }
+.rowhead { font-weight: 700; font-size: .9rem; }
+.rowhead span { overflow-wrap: anywhere; }
+.n2 .rowhead span:last-child { text-align: right; }
+.trow { display: flex; flex-direction: column; gap: 6px; }
+.trow-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: .82rem; color: var(--muted); }
+.pill { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 1px 10px; font-size: .78rem; font-weight: 700; cursor: pointer; min-height: 26px; }
+.pill[aria-pressed="true"] { background: var(--link); border-color: var(--link); color: #1b1b1b; }
+.mon { background: var(--sunk); border: 1px solid var(--line); border-top: 4px solid var(--pc); border-radius: var(--r-card); padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mon .mn { font-weight: 700; overflow-wrap: anywhere; }
+.mon .from { font-size: .8rem; color: var(--muted); }
+.knot { position: relative; display: flex; align-items: center; justify-content: center; }
+.knot::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px dashed var(--link); }
+.knot i { position: relative; width: 10px; height: 10px; background: var(--link); transform: rotate(45deg); border-radius: 2px; animation: pulse 2.4s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { transform: rotate(45deg) scale(1); opacity: 1; } 50% { transform: rotate(45deg) scale(1.3); opacity: .75; } }
+@media (max-width: 559.98px) {
+  .n3 .rowhead { display: none; }
+  .n3 .mons { grid-template-columns: 1fr; }
+  .n3 .knot { height: 18px; }
+  .n3 .knot::before { left: 50%; right: auto; top: 0; bottom: 0; border-top: 0; border-left: 2px dashed var(--link); }
+}
+.empty { color: var(--muted); font-size: .95rem; }
+
+.board { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.cell { border: 1px solid var(--line); border-radius: var(--r-card); padding: 8px 10px; background: var(--sunk); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cell.shared { border: 2px solid var(--warn); }
+.cell .ct { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: .9rem; }
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.cell .cu { font-size: .85rem; font-weight: 700; overflow-wrap: anywhere; }
+.cell .free { font-size: .85rem; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .85rem; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; background: var(--pc); display: inline-block; }
+.board-note { display: flex; flex-direction: column; gap: 4px; font-size: .92rem; }
+
+.checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.check { background: var(--sunk); border: 1px solid var(--line); border-top: 4px solid var(--pc); border-radius: var(--r-card); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.check h3 { color: var(--pc); overflow-wrap: anywhere; }
+.check .sub { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; color: var(--muted); }
+.weak { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.weak span { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; }
+.weak .bad { color: var(--bad); font-weight: 700; }
+
+.bench { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.bench li { border-bottom: 1px solid var(--line); padding-bottom: 8px; display: flex; flex-direction: column; gap: 2px; }
+.bench li:last-child { border-bottom: 0; padding-bottom: 0; }
+.bench .bl { overflow-wrap: anywhere; }
+.bench .br { font-size: .9rem; color: var(--muted); }
+.bench .br.bad { color: var(--bad); }
+
+.save-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+textarea { min-height: 110px; font-family: ui-monospace, 'Courier New', monospace; font-size: .8rem; resize: vertical; }
+.save-status { font-size: .9rem; color: var(--muted); min-height: 1.5em; }
+
+@media (min-width: 700px) {
+  .wrap { padding: 32px 24px 80px; }
+  .card { padding: 20px 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .knot i { animation: none; }
+  * { scroll-behavior: auto !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero">
+    <svg class="cable" id="cable" viewBox="0 0 600 34" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <h1><span class="h1-1">Soul</span> <span class="h1-2">Link</span> <span class="h1-3">Team</span> Planner</h1>
+    <p class="lede" id="lede" aria-live="polite"></p>
+    <div class="example-note" id="exampleNote" hidden>
+      <p><strong>Example run (Emerald).</strong> These encounters are placeholders so you can see how it works. Replace them with your own.</p>
+      <button type="button" class="btn danger" id="clearExample">Clear example and start my run</button>
+    </div>
+  </header>
+
+  <section class="card" aria-labelledby="settingsTitle">
+    <h2 id="settingsTitle">Settings</h2>
+    <div class="settings-grid">
+      <div class="field">
+        <label class="flabel" for="game">Game</label>
+        <select id="game"></select>
+      </div>
+      <div class="field">
+        <span class="flabel" id="playersLabel">Players</span>
+        <div class="seg" role="group" aria-labelledby="playersLabel">
+          <button type="button" id="players-2" data-n="2">2 players</button>
+          <button type="button" id="players-3" data-n="3">3 players (three-way)</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="flabel">Player names</span>
+        <div class="name-inputs" id="nameInputs"></div>
+      </div>
+      <div class="field">
+        <span class="flabel" id="ruleLabel">Primary type rule</span>
+        <div class="seg" role="group" aria-labelledby="ruleLabel">
+          <button type="button" id="rule-cross" data-rule="cross">No sharing</button>
+          <button type="button" id="rule-strict" data-rule="strict">All unique</button>
+          <button type="button" id="rule-none" data-rule="none">Off (no clause)</button>
+        </div>
+        <p class="hint" id="ruleHint"></p>
+      </div>
+      <div class="field">
+        <span class="flabel" id="megaLabel">Mega Evolutions</span>
+        <div class="seg" role="group" aria-labelledby="megaLabel">
+          <button type="button" id="megas-off" data-megas="0">Off</button>
+          <button type="button" id="megas-on" data-megas="1">Allow in any game</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="flabel" id="favourLabel">Whose team to favour</span>
+        <div class="seg" role="group" aria-labelledby="favourLabel" id="favourSeg"></div>
+        <div class="range-wrap" id="favourAmtWrap" hidden>
+          <label class="sr-only" for="favourAmt">How strongly to favour</label>
+          <input type="range" id="favourAmt" min="10" max="100" step="10">
+          <div class="range-labels"><span>A little</span><output id="favourOut" for="favourAmt"></output><span>Fully</span></div>
+        </div>
+      </div>
+      <div class="field wide">
+        <label class="flabel" for="weight">What matters more</label>
+        <div class="range-wrap">
+          <input type="range" id="weight" min="0" max="100" step="5">
+          <div class="range-labels"><span>Raw stats</span><output id="weightOut" for="weight"></output><span>Type balance</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="bestTitle" id="bestSec">
+    <h2 id="bestTitle">Best legal team</h2>
+    <div class="tabs" id="tabs" role="group" aria-label="Team options"></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="notes" id="notes"></div>
+    <div id="teamRows"></div>
+  </section>
+
+  <section class="card" aria-labelledby="boardTitle">
+    <h2 id="boardTitle">Primary type board</h2>
+    <div class="legend" id="legend"></div>
+    <div class="board" id="board"></div>
+    <div class="board-note" id="boardNote"></div>
+  </section>
+
+  <section class="card" aria-labelledby="checkTitle">
+    <h2 id="checkTitle">Team check</h2>
+    <div class="checks" id="checks"></div>
+  </section>
+
+  <section class="card" aria-labelledby="benchTitle">
+    <h2 id="benchTitle">On the bench</h2>
+    <ul class="bench" id="bench"></ul>
+  </section>
+
+  <section aria-labelledby="encTitle" style="display:flex;flex-direction:column;gap:14px">
+    <div class="sec-head">
+      <h2 id="encTitle">Your linked encounters</h2>
+      <button type="button" class="btn primary" id="addTop">Add encounter</button>
+    </div>
+    <div class="enc-list" id="encList"></div>
+    <div><button type="button" class="btn primary" id="addBottom">Add encounter</button></div>
+    <datalist id="speciesList"></datalist>
+  </section>
+
+  <section class="card" aria-labelledby="saveTitle">
+    <h2 id="saveTitle">Save and share</h2>
+    <p class="hint">Your run saves in this browser automatically. To move it to another device or share it, copy the run data and paste it there.</p>
+    <div class="save-actions">
+      <button type="button" class="btn" id="copyData">Copy run data</button>
+      <button type="button" class="btn" id="loadData">Load pasted data</button>
+      <button type="button" class="btn danger-outline" id="blankRun">Start a blank run</button>
+    </div>
+    <label class="flabel" for="runData">Run data</label>
+    <textarea id="runData" spellcheck="false" placeholder="Paste run data here, then choose Load pasted data."></textarea>
+    <span class="save-status" id="saveStatus" role="status"></span>
+    <h3>How scoring works</h3>
+    <p class="hint" id="howScoring">Each Pokémon's base stat total is turned into a 0 to 100 power score, where 200 or less counts as 0 and 600 or more counts as 100. A player's raw stats are the average power of their six. If a player plans more than one Mega, only the single biggest Mega boost counts, because only one Pokémon can Mega Evolve per battle. Type balance is half coverage (how many types the team can hit super effectively with its own types) and half defence, which drops when several team members share a weakness that nobody on the team resists. Each player's team score mixes raw stats and type balance using the "What matters more" slider, and the overall team score is the average of the players' scores, shifted toward one player if you choose to favour them. The planner then searches every legal combination of usable links, always prefers a bigger legal team, and shows the five best.</p>
+  </section>
+</main>
+
+<script>
+'use strict';
+const DATA = {"types":["Normal","Fire","Water","Electric","Grass","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy"],"charts":{"1":[[1,1,1,1,1,1,1,1,1,1,1,1,0.5,0,1,null,null,null],[1,0.5,0.5,1,2,2,1,1,1,1,1,2,0.5,1,0.5,null,null,null],[1,2,0.5,1,0.5,1,1,1,2,1,1,1,2,1,0.5,null,null,null],[1,1,2,0.5,0.5,1,1,1,0,2,1,1,1,1,0.5,null,null,null],[1,0.5,2,1,0.5,1,1,0.5,2,0.5,1,0.5,2,1,0.5,null,null,null],[1,1,0.5,1,2,0.5,1,1,2,2,1,1,1,1,2,null,null,null],[2,1,1,1,1,2,1,0.5,1,0.5,0.5,0.5,2,0,1,null,null,null],[1,1,1,1,2,1,1,0.5,0.5,1,1,2,0.5,0.5,1,null,null,null],[1,2,1,2,0.5,1,1,2,1,0,1,0.5,2,1,1,null,null,null],[1,1,1,0.5,2,1,2,1,1,1,1,2,0.5,1,1,null,null,null],[1,1,1,1,1,1,2,2,1,1,0.5,1,1,1,1,null,null,null],[1,0.5,1,1,2,1,0.5,2,1,0.5,2,1,1,0.5,1,null,null,null],[1,2,1,1,1,2,0.5,1,0.5,2,1,2,1,1,1,null,null,null],[0,1,1,1,1,1,1,1,1,1,0,1,1,2,1,null,null,null],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]],"2":[[1,1,1,1,1,1,1,1,1,1,1,1,0.5,0,1,1,0.5,null],[1,0.5,0.5,1,2,2,1,1,1,1,1,2,0.5,1,0.5,1,2,null],[1,2,0.5,1,0.5,1,1,1,2,1,1,1,2,1,0.5,1,1,null],[1,1,2,0.5,0.5,1,1,1,0,2,1,1,1,1,0.5,1,1,null],[1,0.5,2,1,0.5,1,1,0.5,2,0.5,1,0.5,2,1,0.5,1,0.5,null],[1,0.5,0.5,1,2,0.5,1,1,2,2,1,1,1,1,2,1,0.5,null],[2,1,1,1,1,2,1,0.5,1,0.5,0.5,0.5,2,0,1,2,2,null],[1,1,1,1,2,1,1,0.5,0.5,1,1,1,0.5,0.5,1,1,0,null],[1,2,1,2,0.5,1,1,2,1,0,1,0.5,2,1,1,1,2,null],[1,1,1,0.5,2,1,2,1,1,1,1,2,0.5,1,1,1,0.5,null],[1,1,1,1,1,1,2,2,1,1,0.5,1,1,1,1,0,0.5,null],[1,0.5,1,1,2,1,0.5,0.5,1,0.5,2,1,1,0.5,1,2,0.5,null],[1,2,1,1,1,2,0.5,1,0.5,2,1,2,1,1,1,1,0.5,null],[0,1,1,1,1,1,1,1,1,1,2,1,1,2,1,0.5,0.5,null],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,0.5,null],[1,1,1,1,1,1,0.5,1,1,1,2,1,1,2,1,0.5,0.5,null],[1,0.5,0.5,0.5,1,2,1,1,1,1,1,1,2,1,1,1,0.5,null],[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]],"6":[[1,1,1,1,1,1,1,1,1,1,1,1,0.5,0,1,1,0.5,1],[1,0.5,0.5,1,2,2,1,1,1,1,1,2,0.5,1,0.5,1,2,1],[1,2,0.5,1,0.5,1,1,1,2,1,1,1,2,1,0.5,1,1,1],[1,1,2,0.5,0.5,1,1,1,0,2,1,1,1,1,0.5,1,1,1],[1,0.5,2,1,0.5,1,1,0.5,2,0.5,1,0.5,2,1,0.5,1,0.5,1],[1,0.5,0.5,1,2,0.5,1,1,2,2,1,1,1,1,2,1,0.5,1],[2,1,1,1,1,2,1,0.5,1,0.5,0.5,0.5,2,0,1,2,2,0.5],[1,1,1,1,2,1,1,0.5,0.5,1,1,1,0.5,0.5,1,1,0,2],[1,2,1,2,0.5,1,1,2,1,0,1,0.5,2,1,1,1,2,1],[1,1,1,0.5,2,1,2,1,1,1,1,2,0.5,1,1,1,0.5,1],[1,1,1,1,1,1,2,2,1,1,0.5,1,1,1,1,0,0.5,1],[1,0.5,1,1,2,1,0.5,0.5,1,0.5,2,1,1,0.5,1,2,0.5,0.5],[1,2,1,1,1,2,0.5,1,0.5,2,1,2,1,1,1,1,0.5,1],[0,1,1,1,1,1,1,1,1,1,2,1,1,2,1,0.5,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,0.5,0],[1,1,1,1,1,1,0.5,1,1,1,2,1,1,2,1,0.5,1,0.5],[1,0.5,0.5,0.5,1,2,1,1,1,1,1,1,2,1,1,1,0.5,2],[1,0.5,1,1,1,1,2,0.5,1,1,1,1,1,1,2,2,0.5,1]]},"sp":[{"n":"Bulbasaur","g":1,"t":[4,7],"b":318,"e":[1,2]},{"n":"Ivysaur","g":1,"t":[4,7],"b":405,"e":[2]},{"n":"Venusaur","g":1,"t":[4,7],"b":525,"mg":[1091]},{"n":"Charmander","g":1,"t":[1],"b":309,"e":[4,5]},{"n":"Charmeleon","g":1,"t":[1],"b":405,"e":[5]},{"n":"Charizard","g":1,"t":[1,9],"b":534,"mg":[1092,1093]},{"n":"Squirtle","g":1,"t":[2],"b":314,"e":[7,8]},{"n":"Wartortle","g":1,"t":[2],"b":405,"e":[8]},{"n":"Blastoise","g":1,"t":[2],"b":530,"mg":[1094]},{"n":"Caterpie","g":1,"t":[11],"b":195,"e":[10,11]},{"n":"Metapod","g":1,"t":[11],"b":205,"e":[11]},{"n":"Butterfree","g":1,"t":[11,9],"b":395,"bo":{"2":385,"3":385,"4":385,"5":385}},{"n":"Weedle","g":1,"t":[11,7],"b":195,"e":[13,14]},{"n":"Kakuna","g":1,"t":[11,7],"b":205,"e":[14]},{"n":"Beedrill","g":1,"t":[11,7],"b":395,"bo":{"2":385,"3":385,"4":385,"5":385},"mg":[1095]},{"n":"Pidgey","g":1,"t":[0,9],"b":251,"e":[16,17]},{"n":"Pidgeotto","g":1,"t":[0,9],"b":349,"e":[17]},{"n":"Pidgeot","g":1,"t":[0,9],"b":479,"bo":{"2":469,"3":469,"4":469,"5":469},"mg":[1096]},{"n":"Rattata","g":1,"t":[0],"b":253,"e":[20]},{"n":"Rattata-Alola","g":7,"t":[15,0],"b":253,"e":[21]},{"n":"Raticate","g":1,"t":[0],"b":413},{"n":"Raticate-Alola","g":7,"t":[15,0],"b":413},{"n":"Spearow","g":1,"t":[0,9],"b":262,"e":[23]},{"n":"Fearow","g":1,"t":[0,9],"b":442},{"n":"Ekans","g":1,"t":[7],"b":288,"e":[25]},{"n":"Arbok","g":1,"t":[7],"b":448,"bo":{"2":438,"3":438,"4":438,"5":438,"6":438}},{"n":"Pikachu","g":1,"t":[3],"b":320,"e":[27,28],"bo":{"2":300,"3":300,"4":300,"5":300}},{"n":"Raichu","g":1,"t":[3],"b":485,"bo":{"2":475,"3":475,"4":475,"5":475},"mg":[1097,1098]},{"n":"Raichu-Alola","g":7,"t":[3,10],"b":485},{"n":"Sandshrew","g":1,"t":[8],"b":300,"e":[31]},{"n":"Sandshrew-Alola","g":7,"t":[5,16],"b":300,"e":[32]},{"n":"Sandslash","g":1,"t":[8],"b":450},{"n":"Sandslash-Alola","g":7,"t":[5,16],"b":450},{"n":"Nidoran-F","g":1,"t":[7],"b":275,"e":[34,35]},{"n":"Nidorina","g":1,"t":[7],"b":365,"e":[35]},{"n":"Nidoqueen","g":1,"t":[7,8],"b":505,"bo":{"2":495,"3":495,"4":495,"5":495}},{"n":"Nidoran-M","g":1,"t":[7],"b":273,"e":[37,38]},{"n":"Nidorino","g":1,"t":[7],"b":365,"e":[38]},{"n":"Nidoking","g":1,"t":[7,8],"b":505,"bo":{"2":495,"3":495,"4":495,"5":495}},{"n":"Clefairy","g":1,"t":[17],"b":323,"e":[40],"to":{"1":[0],"2":[0],"3":[0],"4":[0],"5":[0]}},{"n":"Clefable","g":1,"t":[17],"b":483,"to":{"1":[0],"2":[0],"3":[0],"4":[0],"5":[0]},"bo":{"2":473,"3":473,"4":473,"5":473},"mg":[1099]},{"n":"Vulpix","g":1,"t":[1],"b":299,"e":[43]},{"n":"Vulpix-Alola","g":7,"t":[5],"b":299,"e":[44]},{"n":"Ninetales","g":1,"t":[1],"b":505},{"n":"Ninetales-Alola","g":7,"t":[5,17],"b":505},{"n":"Jigglypuff","g":1,"t":[0,17],"b":270,"e":[46],"to":{"1":[0],"2":[0],"3":[0],"4":[0],"5":[0]}},{"n":"Wigglytuff","g":1,"t":[0,17],"b":435,"to":{"1":[0],"2":[0],"3":[0],"4":[0],"5":[0]},"bo":{"2":425,"3":425,"4":425,"5":425}},{"n":"Zubat","g":1,"t":[7,9],"b":245,"e":[48,202]},{"n":"Golbat","g":1,"t":[7,9],"b":455,"e":[202]},{"n":"Oddish","g":1,"t":[4,7],"b":320,"e":[50,51,215]},{"n":"Gloom","g":1,"t":[4,7],"b":395,"e":[51,215]},{"n":"Vileplume","g":1,"t":[4,7],"b":490,"bo":{"2":480,"3":480,"4":480,"5":480}},{"n":"Paras","g":1,"t":[11,4],"b":285,"e":[53]},{"n":"Parasect","g":1,"t":[11,4],"b":405},{"n":"Venonat","g":1,"t":[11,7],"b":305,"e":[55]},{"n":"Venomoth","g":1,"t":[11,7],"b":450},{"n":"Diglett","g":1,"t":[8],"b":265,"e":[58]},{"n":"Diglett-Alola","g":7,"t":[8,16],"b":265,"e":[59]},{"n":"Dugtrio","g":1,"t":[8],"b":425,"bo":{"2":405,"3":405,"4":405,"5":405,"6":405}},{"n":"Dugtrio-Alola","g":7,"t":[8,16],"b":425},{"n":"Meowth","g":1,"t":[0],"b":290,"e":[63]},{"n":"Meowth-Alola","g":7,"t":[15],"b":290,"e":[64]},{"n":"Meowth-Galar","g":8,"t":[16],"b":290,"e":[928]},{"n":"Persian","g":1,"t":[0],"b":440},{"n":"Persian-Alola","g":7,"t":[15],"b":440},{"n":"Psyduck","g":1,"t":[2],"b":320,"e":[66]},{"n":"Golduck","g":1,"t":[2],"b":500},{"n":"Mankey","g":1,"t":[6],"b":305,"e":[68,1044]},{"n":"Primeape","g":1,"t":[6],"b":455,"e":[1044]},{"n":"Growlithe","g":1,"t":[1],"b":350,"e":[71]},{"n":"Growlithe-Hisui","g":8,"t":[1,12],"b":350,"e":[72]},{"n":"Arcanine","g":1,"t":[1],"b":555},{"n":"Arcanine-Hisui","g":8,"t":[1,12],"b":555},{"n":"Poliwag","g":1,"t":[2],"b":300,"e":[74,75,219]},{"n":"Poliwhirl","g":1,"t":[2],"b":385,"e":[75,219]},{"n":"Poliwrath","g":1,"t":[2,6],"b":510,"bo":{"2":500,"3":500,"4":500,"5":500}},{"n":"Abra","g":1,"t":[10],"b":310,"e":[77,78]},{"n":"Kadabra","g":1,"t":[10],"b":400,"e":[78]},{"n":"Alakazam","g":1,"t":[10],"b":500,"bo":{"2":490,"3":490,"4":490,"5":490},"mg":[1100]},{"n":"Machop","g":1,"t":[6],"b":305,"e":[80,81]},{"n":"Machoke","g":1,"t":[6],"b":405,"e":[81]},{"n":"Machamp","g":1,"t":[6],"b":505},{"n":"Bellsprout","g":1,"t":[4,7],"b":300,"e":[83,84]},{"n":"Weepinbell","g":1,"t":[4,7],"b":390,"e":[84]},{"n":"Victreebel","g":1,"t":[4,7],"b":490,"bo":{"2":480,"3":480,"4":480,"5":480},"mg":[1101]},{"n":"Tentacool","g":1,"t":[2,7],"b":335,"e":[86]},{"n":"Tentacruel","g":1,"t":[2,7],"b":515},{"n":"Geodude","g":1,"t":[12,8],"b":300,"e":[89,91]},{"n":"Geodude-Alola","g":7,"t":[12,3],"b":300,"e":[90,92]},{"n":"Graveler","g":1,"t":[12,8],"b":390,"e":[91]},{"n":"Graveler-Alola","g":7,"t":[12,3],"b":390,"e":[92]},{"n":"Golem","g":1,"t":[12,8],"b":495,"bo":{"2":485,"3":485,"4":485,"5":485}},{"n":"Golem-Alola","g":7,"t":[12,3],"b":495},{"n":"Ponyta","g":1,"t":[1],"b":410,"e":[95]},{"n":"Ponyta-Galar","g":8,"t":[10],"b":410,"e":[96]},{"n":"Rapidash","g":1,"t":[1],"b":500},{"n":"Rapidash-Galar","g":8,"t":[10,17],"b":500},{"n":"Slowpoke","g":1,"t":[2,10],"b":315,"e":[99,233]},{"n":"Slowpoke-Galar","g":8,"t":[10],"b":315,"e":[100,234]},{"n":"Slowbro","g":1,"t":[2,10],"b":490,"mg":[1102]},{"n":"Slowbro-Galar","g":8,"t":[7,10],"b":490},{"n":"Magnemite","g":1,"t":[3,16],"b":325,"e":[102,504],"to":{"1":[3]}},{"n":"Magneton","g":1,"t":[3,16],"b":465,"e":[504],"to":{"1":[3]}},{"n":"Farfetch’d","g":1,"t":[0,9],"b":377,"bo":{"2":352,"3":352,"4":352,"5":352,"6":352}},{"n":"Farfetch’d-Galar","g":8,"t":[6],"b":377,"e":[930]},{"n":"Doduo","g":1,"t":[0,9],"b":310,"e":[106]},{"n":"Dodrio","g":1,"t":[0,9],"b":470,"bo":{"2":460,"3":460,"4":460,"5":460,"6":460}},{"n":"Seel","g":1,"t":[2],"b":325,"e":[108]},{"n":"Dewgong","g":1,"t":[2,5],"b":475},{"n":"Grimer","g":1,"t":[7],"b":325,"e":[111]},{"n":"Grimer-Alola","g":7,"t":[7,15],"b":325,"e":[112]},{"n":"Muk","g":1,"t":[7],"b":500},{"n":"Muk-Alola","g":7,"t":[7,15],"b":500},{"n":"Shellder","g":1,"t":[2],"b":305,"e":[114]},{"n":"Cloyster","g":1,"t":[2,5],"b":525},{"n":"Gastly","g":1,"t":[13,7],"b":310,"e":[116,117]},{"n":"Haunter","g":1,"t":[13,7],"b":405,"e":[117]},{"n":"Gengar","g":1,"t":[13,7],"b":500,"mg":[1103]},{"n":"Onix","g":1,"t":[12,8],"b":385,"e":[243]},{"n":"Drowzee","g":1,"t":[10],"b":328,"e":[120]},{"n":"Hypno","g":1,"t":[10],"b":483},{"n":"Krabby","g":1,"t":[2],"b":325,"e":[122]},{"n":"Kingler","g":1,"t":[2],"b":475},{"n":"Voltorb","g":1,"t":[3],"b":330,"e":[125]},{"n":"Voltorb-Hisui","g":8,"t":[3,4],"b":330,"e":[126]},{"n":"Electrode","g":1,"t":[3],"b":490,"bo":{"2":480,"3":480,"4":480,"5":480,"6":480}},{"n":"Electrode-Hisui","g":8,"t":[3,4],"b":490},{"n":"Exeggcute","g":1,"t":[4,10],"b":325,"e":[128,129]},{"n":"Exeggutor","g":1,"t":[4,10],"b":530,"bo":{"2":520,"3":520,"4":520,"5":520,"6":520}},{"n":"Exeggutor-Alola","g":7,"t":[4,14],"b":530},{"n":"Cubone","g":1,"t":[8],"b":320,"e":[131,132]},{"n":"Marowak","g":1,"t":[8],"b":425},{"n":"Marowak-Alola","g":7,"t":[1,13],"b":425},{"n":"Hitmonlee","g":1,"t":[6],"b":455},{"n":"Hitmonchan","g":1,"t":[6],"b":455},{"n":"Lickitung","g":1,"t":[0],"b":385,"e":[505]},{"n":"Koffing","g":1,"t":[7],"b":340,"e":[137,138]},{"n":"Weezing","g":1,"t":[7],"b":490},{"n":"Weezing-Galar","g":8,"t":[7,17],"b":490},{"n":"Rhyhorn","g":1,"t":[8,12],"b":345,"e":[140,506]},{"n":"Rhydon","g":1,"t":[8,12],"b":485,"e":[506]},{"n":"Chansey","g":1,"t":[0],"b":450,"e":[280]},{"n":"Tangela","g":1,"t":[4],"b":435,"e":[507]},{"n":"Kangaskhan","g":1,"t":[0],"b":490,"mg":[1104]},{"n":"Horsea","g":1,"t":[2],"b":295,"e":[145,268]},{"n":"Seadra","g":1,"t":[2],"b":440,"e":[268]},{"n":"Goldeen","g":1,"t":[2],"b":320,"e":[147]},{"n":"Seaking","g":1,"t":[2],"b":450},{"n":"Staryu","g":1,"t":[2],"b":340,"e":[149]},{"n":"Starmie","g":1,"t":[2,10],"b":520,"mg":[1105]},{"n":"Mr. Mime","g":1,"t":[10,17],"b":460,"to":{"1":[10],"2":[10],"3":[10],"4":[10],"5":[10]}},{"n":"Mr. Mime-Galar","g":8,"t":[5,10],"b":460,"e":[931]},{"n":"Scyther","g":1,"t":[11,9],"b":500,"e":[248,965]},{"n":"Jynx","g":1,"t":[5,10],"b":455},{"n":"Electabuzz","g":1,"t":[3],"b":490,"e":[508]},{"n":"Magmar","g":1,"t":[1],"b":495,"e":[509]},{"n":"Pinsir","g":1,"t":[11],"b":500,"mg":[1106]},{"n":"Tauros","g":1,"t":[0],"b":490},{"n":"Magikarp","g":1,"t":[2],"b":200,"e":[159]},{"n":"Gyarados","g":1,"t":[2,9],"b":540,"mg":[1107]},{"n":"Lapras","g":1,"t":[2,5],"b":535},{"n":"Ditto","g":1,"t":[0],"b":288},{"n":"Eevee","g":1,"t":[0],"b":325,"e":[163,164,165,230,231,512,513,756]},{"n":"Vaporeon","g":1,"t":[2],"b":525},{"n":"Jolteon","g":1,"t":[3],"b":525},{"n":"Flareon","g":1,"t":[1],"b":525},{"n":"Porygon","g":1,"t":[0],"b":395,"e":[271,516]},{"n":"Omanyte","g":1,"t":[12,2],"b":355,"e":[168]},{"n":"Omastar","g":1,"t":[12,2],"b":495},{"n":"Kabuto","g":1,"t":[12,2],"b":355,"e":[170]},{"n":"Kabutops","g":1,"t":[12,2],"b":495},{"n":"Aerodactyl","g":1,"t":[12,9],"b":515,"mg":[1108]},{"n":"Snorlax","g":1,"t":[0],"b":540},{"n":"Articuno","g":1,"t":[5,9],"b":580},{"n":"Articuno-Galar","g":8,"t":[10,9],"b":580},{"n":"Zapdos","g":1,"t":[3,9],"b":580},{"n":"Zapdos-Galar","g":8,"t":[6,9],"b":580},{"n":"Moltres","g":1,"t":[1,9],"b":580},{"n":"Moltres-Galar","g":8,"t":[15,9],"b":580},{"n":"Dratini","g":1,"t":[14],"b":300,"e":[180,181]},{"n":"Dragonair","g":1,"t":[14],"b":420,"e":[181]},{"n":"Dragonite","g":1,"t":[14,9],"b":600,"mg":[1109]},{"n":"Mewtwo","g":1,"t":[10],"b":680,"mg":[1110,1111]},{"n":"Mew","g":1,"t":[10],"b":600},{"n":"Chikorita","g":2,"t":[4],"b":318,"e":[185,186]},{"n":"Bayleef","g":2,"t":[4],"b":405,"e":[186]},{"n":"Meganium","g":2,"t":[4],"b":525,"mg":[1112]},{"n":"Cyndaquil","g":2,"t":[1],"b":309,"e":[188,189,190]},{"n":"Quilava","g":2,"t":[1],"b":405,"e":[189,190]},{"n":"Typhlosion","g":2,"t":[1],"b":534},{"n":"Typhlosion-Hisui","g":8,"t":[1,13],"b":534},{"n":"Totodile","g":2,"t":[2],"b":314,"e":[192,193]},{"n":"Croconaw","g":2,"t":[2],"b":405,"e":[193]},{"n":"Feraligatr","g":2,"t":[2],"b":530,"mg":[1113]},{"n":"Sentret","g":2,"t":[0],"b":215,"e":[195]},{"n":"Furret","g":2,"t":[0],"b":415},{"n":"Hoothoot","g":2,"t":[0,9],"b":262,"e":[197]},{"n":"Noctowl","g":2,"t":[0,9],"b":452,"bo":{"2":442,"3":442,"4":442,"5":442,"6":442}},{"n":"Ledyba","g":2,"t":[11,9],"b":265,"e":[199]},{"n":"Ledian","g":2,"t":[11,9],"b":390},{"n":"Spinarak","g":2,"t":[11,7],"b":250,"e":[201]},{"n":"Ariados","g":2,"t":[11,7],"b":400,"bo":{"2":390,"3":390,"4":390,"5":390,"6":390}},{"n":"Crobat","g":2,"t":[7,9],"b":535},{"n":"Chinchou","g":2,"t":[2,3],"b":330,"e":[204]},{"n":"Lanturn","g":2,"t":[2,3],"b":460},{"n":"Pichu","g":2,"t":[3],"b":205,"e":[26,27,28]},{"n":"Cleffa","g":2,"t":[17],"b":218,"e":[39,40],"to":{"2":[0],"3":[0],"4":[0],"5":[0]}},{"n":"Igglybuff","g":2,"t":[0,17],"b":210,"e":[45,46],"to":{"2":[0],"3":[0],"4":[0],"5":[0]}},{"n":"Togepi","g":2,"t":[17],"b":245,"e":[209,510],"to":{"2":[0],"3":[0],"4":[0],"5":[0]}},{"n":"Togetic","g":2,"t":[17,9],"b":405,"e":[510],"to":{"2":[0,9],"3":[0,9],"4":[0,9],"5":[0,9]}},{"n":"Natu","g":2,"t":[10,9],"b":320,"e":[211]},{"n":"Xatu","g":2,"t":[10,9],"b":470},{"n":"Mareep","g":2,"t":[3],"b":280,"e":[213,214]},{"n":"Flaaffy","g":2,"t":[3],"b":365,"e":[214]},{"n":"Ampharos","g":2,"t":[3],"b":510,"bo":{"2":500,"3":500,"4":500,"5":500},"mg":[1114]},{"n":"Bellossom","g":2,"t":[4],"b":490,"bo":{"2":480,"3":480,"4":480,"5":480}},{"n":"Marill","g":2,"t":[2,17],"b":250,"e":[217],"to":{"2":[2],"3":[2],"4":[2],"5":[2]}},{"n":"Azumarill","g":2,"t":[2,17],"b":420,"to":{"2":[2],"3":[2],"4":[2],"5":[2]},"bo":{"2":410,"3":410,"4":410,"5":410}},{"n":"Sudowoodo","g":2,"t":[12],"b":410},{"n":"Politoed","g":2,"t":[2],"b":500},{"n":"Hoppip","g":2,"t":[4,9],"b":250,"e":[221,222]},{"n":"Skiploom","g":2,"t":[4,9],"b":340,"e":[222]},{"n":"Jumpluff","g":2,"t":[4,9],"b":460,"bo":{"2":450,"3":450,"4":450,"5":450}},{"n":"Aipom","g":2,"t":[0],"b":360,"e":[466]},{"n":"Sunkern","g":2,"t":[4],"b":180,"e":[225]},{"n":"Sunflora","g":2,"t":[4],"b":425},{"n":"Yanma","g":2,"t":[11,9],"b":390,"e":[511]},{"n":"Wooper","g":2,"t":[2,8],"b":210,"e":[229]},{"n":"Wooper-Paldea","g":9,"t":[7,8],"b":210,"e":[1045]},{"n":"Quagsire","g":2,"t":[2,8],"b":430},{"n":"Espeon","g":2,"t":[10],"b":525},{"n":"Umbreon","g":2,"t":[15],"b":525},{"n":"Murkrow","g":2,"t":[15,9],"b":405,"e":[472]},{"n":"Slowking","g":2,"t":[2,10],"b":490},{"n":"Slowking-Galar","g":8,"t":[7,10],"b":490},{"n":"Misdreavus","g":2,"t":[13],"b":435,"e":[471]},{"n":"Unown","g":2,"t":[10],"b":336},{"n":"Wobbuffet","g":2,"t":[10],"b":405},{"n":"Girafarig","g":2,"t":[0,10],"b":455,"e":[1046]},{"n":"Pineco","g":2,"t":[11],"b":290,"e":[240]},{"n":"Forretress","g":2,"t":[11,16],"b":465},{"n":"Dunsparce","g":2,"t":[0],"b":415,"e":[1047]},{"n":"Gligar","g":2,"t":[8,9],"b":430,"e":[514]},{"n":"Steelix","g":2,"t":[16,8],"b":510,"mg":[1115]},{"n":"Snubbull","g":2,"t":[17],"b":300,"e":[245],"to":{"2":[0],"3":[0],"4":[0],"5":[0]}},{"n":"Granbull","g":2,"t":[17],"b":450,"to":{"2":[0],"3":[0],"4":[0],"5":[0]}},{"n":"Qwilfish","g":2,"t":[2,7],"b":440,"bo":{"2":430,"3":430,"4":430,"5":430,"6":430}},{"n":"Qwilfish-Hisui","g":8,"t":[15,7],"b":440,"e":[969]},{"n":"Scizor","g":2,"t":[11,16],"b":500,"mg":[1116]},{"n":"Shuckle","g":2,"t":[11,12],"b":505},{"n":"Heracross","g":2,"t":[11,6],"b":500,"mg":[1117]},{"n":"Sneasel","g":2,"t":[15,5],"b":430,"e":[503]},{"n":"Sneasel-Hisui","g":8,"t":[6,7],"b":430,"e":[968]},{"n":"Teddiursa","g":2,"t":[0],"b":330,"e":[254,966]},{"n":"Ursaring","g":2,"t":[0],"b":500,"e":[966]},{"n":"Slugma","g":2,"t":[1],"b":250,"e":[256]},{"n":"Magcargo","g":2,"t":[1,12],"b":430,"bo":{"2":410,"3":410,"4":410,"5":410,"6":410}},{"n":"Swinub","g":2,"t":[5,8],"b":250,"e":[258,515]},{"n":"Piloswine","g":2,"t":[5,8],"b":450,"e":[515]},{"n":"Corsola","g":2,"t":[2,12],"b":410,"bo":{"2":380,"3":380,"4":380,"5":380,"6":380}},{"n":"Corsola-Galar","g":8,"t":[13],"b":410,"e":[929]},{"n":"Remoraid","g":2,"t":[2],"b":300,"e":[262]},{"n":"Octillery","g":2,"t":[2],"b":480},{"n":"Delibird","g":2,"t":[5,9],"b":330},{"n":"Mantine","g":2,"t":[2,9],"b":485,"bo":{"2":465,"3":465,"4":465,"5":465,"6":465}},{"n":"Skarmory","g":2,"t":[16,9],"b":465,"mg":[1118]},{"n":"Houndour","g":2,"t":[15,1],"b":330,"e":[267]},{"n":"Houndoom","g":2,"t":[15,1],"b":500,"mg":[1119]},{"n":"Kingdra","g":2,"t":[2,14],"b":540},{"n":"Phanpy","g":2,"t":[8],"b":330,"e":[270]},{"n":"Donphan","g":2,"t":[8],"b":500},{"n":"Porygon2","g":2,"t":[0],"b":515,"e":[516]},{"n":"Stantler","g":2,"t":[0],"b":465,"e":[964]},{"n":"Smeargle","g":2,"t":[0],"b":250},{"n":"Tyrogue","g":2,"t":[6],"b":210,"e":[133,134,275]},{"n":"Hitmontop","g":2,"t":[6],"b":455},{"n":"Smoochum","g":2,"t":[5,10],"b":305,"e":[153]},{"n":"Elekid","g":2,"t":[3],"b":360,"e":[154,508]},{"n":"Magby","g":2,"t":[1],"b":365,"e":[155,509]},{"n":"Miltank","g":2,"t":[0],"b":490},{"n":"Blissey","g":2,"t":[0],"b":540},{"n":"Raikou","g":2,"t":[3],"b":580},{"n":"Entei","g":2,"t":[1],"b":580},{"n":"Suicune","g":2,"t":[2],"b":580},{"n":"Larvitar","g":2,"t":[12,8],"b":300,"e":[285,286]},{"n":"Pupitar","g":2,"t":[12,8],"b":410,"e":[286]},{"n":"Tyranitar","g":2,"t":[12,15],"b":600,"mg":[1120]},{"n":"Lugia","g":2,"t":[10,9],"b":680},{"n":"Ho-Oh","g":2,"t":[1,9],"b":680},{"n":"Celebi","g":2,"t":[10,4],"b":600},{"n":"Treecko","g":3,"t":[4],"b":310,"e":[291,292]},{"n":"Grovyle","g":3,"t":[4],"b":405,"e":[292]},{"n":"Sceptile","g":3,"t":[4],"b":530,"mg":[1121]},{"n":"Torchic","g":3,"t":[1],"b":310,"e":[294,295]},{"n":"Combusken","g":3,"t":[1,6],"b":405,"e":[295]},{"n":"Blaziken","g":3,"t":[1,6],"b":530,"mg":[1122]},{"n":"Mudkip","g":3,"t":[2],"b":310,"e":[297,298]},{"n":"Marshtomp","g":3,"t":[2,8],"b":405,"e":[298]},{"n":"Swampert","g":3,"t":[2,8],"b":535,"mg":[1123]},{"n":"Poochyena","g":3,"t":[15],"b":220,"e":[300]},{"n":"Mightyena","g":3,"t":[15],"b":420},{"n":"Zigzagoon","g":3,"t":[0],"b":240,"e":[303]},{"n":"Zigzagoon-Galar","g":8,"t":[15,0],"b":240,"e":[304,927]},{"n":"Linoone","g":3,"t":[0],"b":420},{"n":"Linoone-Galar","g":8,"t":[15,0],"b":420,"e":[927]},{"n":"Wurmple","g":3,"t":[11],"b":195,"e":[306,307,308,309]},{"n":"Silcoon","g":3,"t":[11],"b":205,"e":[307]},{"n":"Beautifly","g":3,"t":[11,9],"b":395,"bo":{"3":385,"4":385,"5":385}},{"n":"Cascoon","g":3,"t":[11],"b":205,"e":[309]},{"n":"Dustox","g":3,"t":[11,7],"b":385},{"n":"Lotad","g":3,"t":[2,4],"b":220,"e":[311,312]},{"n":"Lombre","g":3,"t":[2,4],"b":340,"e":[312]},{"n":"Ludicolo","g":3,"t":[2,4],"b":480},{"n":"Seedot","g":3,"t":[4],"b":220,"e":[314,315]},{"n":"Nuzleaf","g":3,"t":[4,15],"b":340,"e":[315]},{"n":"Shiftry","g":3,"t":[4,15],"b":480},{"n":"Taillow","g":3,"t":[0,9],"b":270,"e":[317]},{"n":"Swellow","g":3,"t":[0,9],"b":455,"bo":{"3":430,"4":430,"5":430,"6":430}},{"n":"Wingull","g":3,"t":[2,9],"b":270,"e":[319]},{"n":"Pelipper","g":3,"t":[2,9],"b":440,"bo":{"3":430,"4":430,"5":430,"6":430}},{"n":"Ralts","g":3,"t":[10,17],"b":198,"e":[321,322,517],"to":{"3":[10],"4":[10],"5":[10]}},{"n":"Kirlia","g":3,"t":[10,17],"b":278,"e":[322,517],"to":{"3":[10],"4":[10],"5":[10]}},{"n":"Gardevoir","g":3,"t":[10,17],"b":518,"to":{"3":[10],"4":[10],"5":[10]},"mg":[1124]},{"n":"Surskit","g":3,"t":[11,2],"b":269,"e":[324]},{"n":"Masquerain","g":3,"t":[11,9],"b":454,"bo":{"3":414,"4":414,"5":414,"6":414}},{"n":"Shroomish","g":3,"t":[4],"b":295,"e":[326]},{"n":"Breloom","g":3,"t":[4,6],"b":460},{"n":"Slakoth","g":3,"t":[0],"b":280,"e":[328,329]},{"n":"Vigoroth","g":3,"t":[0],"b":440,"e":[329]},{"n":"Slaking","g":3,"t":[0],"b":670},{"n":"Nincada","g":3,"t":[11,8],"b":266,"e":[331,332]},{"n":"Ninjask","g":3,"t":[11,9],"b":456},{"n":"Shedinja","g":3,"t":[11,13],"b":236},{"n":"Whismur","g":3,"t":[0],"b":240,"e":[334,335]},{"n":"Loudred","g":3,"t":[0],"b":360,"e":[335]},{"n":"Exploud","g":3,"t":[0],"b":490,"bo":{"3":480,"4":480,"5":480}},{"n":"Makuhita","g":3,"t":[6],"b":237,"e":[337]},{"n":"Hariyama","g":3,"t":[6],"b":474},{"n":"Azurill","g":3,"t":[0,17],"b":190,"e":[216,217],"to":{"3":[0],"4":[0],"5":[0]}},{"n":"Nosepass","g":3,"t":[12],"b":375,"e":[518]},{"n":"Skitty","g":3,"t":[0],"b":260,"e":[341]},{"n":"Delcatty","g":3,"t":[0],"b":400,"bo":{"3":380,"4":380,"5":380,"6":380}},{"n":"Sableye","g":3,"t":[15,13],"b":380,"mg":[1125]},{"n":"Mawile","g":3,"t":[16,17],"b":380,"to":{"3":[16],"4":[16],"5":[16]},"mg":[1126]},{"n":"Aron","g":3,"t":[16,12],"b":330,"e":[345,346]},{"n":"Lairon","g":3,"t":[16,12],"b":430,"e":[346]},{"n":"Aggron","g":3,"t":[16,12],"b":530,"mg":[1127]},{"n":"Meditite","g":3,"t":[6,10],"b":280,"e":[348]},{"n":"Medicham","g":3,"t":[6,10],"b":410,"mg":[1128]},{"n":"Electrike","g":3,"t":[3],"b":295,"e":[350]},{"n":"Manectric","g":3,"t":[3],"b":475,"mg":[1129]},{"n":"Plusle","g":3,"t":[3],"b":405},{"n":"Minun","g":3,"t":[3],"b":405},{"n":"Volbeat","g":3,"t":[11],"b":430,"bo":{"3":400,"4":400,"5":400,"6":400}},{"n":"Illumise","g":3,"t":[11],"b":430,"bo":{"3":400,"4":400,"5":400,"6":400}},{"n":"Roselia","g":3,"t":[4,7],"b":400,"e":[447]},{"n":"Gulpin","g":3,"t":[7],"b":302,"e":[357]},{"n":"Swalot","g":3,"t":[7],"b":467},{"n":"Carvanha","g":3,"t":[2,15],"b":305,"e":[359]},{"n":"Sharpedo","g":3,"t":[2,15],"b":460,"mg":[1130]},{"n":"Wailmer","g":3,"t":[2],"b":400,"e":[361]},{"n":"Wailord","g":3,"t":[2],"b":500},{"n":"Numel","g":3,"t":[1,8],"b":305,"e":[363]},{"n":"Camerupt","g":3,"t":[1,8],"b":460,"mg":[1131]},{"n":"Torkoal","g":3,"t":[1],"b":470},{"n":"Spoink","g":3,"t":[10],"b":330,"e":[366]},{"n":"Grumpig","g":3,"t":[10],"b":470},{"n":"Spinda","g":3,"t":[0],"b":360},{"n":"Trapinch","g":3,"t":[8],"b":290,"e":[369,370]},{"n":"Vibrava","g":3,"t":[8,14],"b":340,"e":[370]},{"n":"Flygon","g":3,"t":[8,14],"b":520},{"n":"Cacnea","g":3,"t":[4],"b":335,"e":[372]},{"n":"Cacturne","g":3,"t":[4,15],"b":475},{"n":"Swablu","g":3,"t":[0,9],"b":310,"e":[374]},{"n":"Altaria","g":3,"t":[14,9],"b":490,"mg":[1132]},{"n":"Zangoose","g":3,"t":[0],"b":458},{"n":"Seviper","g":3,"t":[7],"b":458},{"n":"Lunatone","g":3,"t":[12,10],"b":460,"bo":{"3":440,"4":440,"5":440,"6":440}},{"n":"Solrock","g":3,"t":[12,10],"b":460,"bo":{"3":440,"4":440,"5":440,"6":440}},{"n":"Barboach","g":3,"t":[2,8],"b":288,"e":[380]},{"n":"Whiscash","g":3,"t":[2,8],"b":468},{"n":"Corphish","g":3,"t":[2],"b":308,"e":[382]},{"n":"Crawdaunt","g":3,"t":[2,15],"b":468},{"n":"Baltoy","g":3,"t":[8,10],"b":300,"e":[384]},{"n":"Claydol","g":3,"t":[8,10],"b":500},{"n":"Lileep","g":3,"t":[12,4],"b":355,"e":[386]},{"n":"Cradily","g":3,"t":[12,4],"b":495},{"n":"Anorith","g":3,"t":[12,11],"b":355,"e":[388]},{"n":"Armaldo","g":3,"t":[12,11],"b":495},{"n":"Feebas","g":3,"t":[2],"b":200,"e":[390]},{"n":"Milotic","g":3,"t":[2],"b":540},{"n":"Castform","g":3,"t":[0],"b":420},{"n":"Kecleon","g":3,"t":[0],"b":440},{"n":"Shuppet","g":3,"t":[13],"b":295,"e":[394]},{"n":"Banette","g":3,"t":[13],"b":455,"mg":[1133]},{"n":"Duskull","g":3,"t":[13],"b":295,"e":[396,519]},{"n":"Dusclops","g":3,"t":[13],"b":455,"e":[519]},{"n":"Tropius","g":3,"t":[4,9],"b":460},{"n":"Chimecho","g":3,"t":[10],"b":455,"bo":{"3":425,"4":425,"5":425,"6":425},"mg":[1134]},{"n":"Absol","g":3,"t":[15],"b":465,"mg":[1135,1136]},{"n":"Wynaut","g":3,"t":[10],"b":260,"e":[237]},{"n":"Snorunt","g":3,"t":[5],"b":300,"e":[402,520]},{"n":"Glalie","g":3,"t":[5],"b":480,"mg":[1137]},{"n":"Spheal","g":3,"t":[5,2],"b":290,"e":[404,405]},{"n":"Sealeo","g":3,"t":[5,2],"b":410,"e":[405]},{"n":"Walrein","g":3,"t":[5,2],"b":530},{"n":"Clamperl","g":3,"t":[2],"b":345,"e":[407,408]},{"n":"Huntail","g":3,"t":[2],"b":485},{"n":"Gorebyss","g":3,"t":[2],"b":485},{"n":"Relicanth","g":3,"t":[2,12],"b":485},{"n":"Luvdisc","g":3,"t":[2],"b":330},{"n":"Bagon","g":3,"t":[14],"b":300,"e":[412,413]},{"n":"Shelgon","g":3,"t":[14],"b":420,"e":[413]},{"n":"Salamence","g":3,"t":[14,9],"b":600,"mg":[1138]},{"n":"Beldum","g":3,"t":[16,10],"b":300,"e":[415,416]},{"n":"Metang","g":3,"t":[16,10],"b":420,"e":[416]},{"n":"Metagross","g":3,"t":[16,10],"b":600,"mg":[1139]},{"n":"Regirock","g":3,"t":[12],"b":580},{"n":"Regice","g":3,"t":[5],"b":580},{"n":"Registeel","g":3,"t":[16],"b":580},{"n":"Latias","g":3,"t":[14,10],"b":600,"mg":[1140]},{"n":"Latios","g":3,"t":[14,10],"b":600,"mg":[1141]},{"n":"Kyogre","g":3,"t":[2],"b":670},{"n":"Groudon","g":3,"t":[8],"b":670},{"n":"Rayquaza","g":3,"t":[14,9],"b":680,"mg":[1142]},{"n":"Jirachi","g":3,"t":[16,10],"b":600},{"n":"Deoxys","g":3,"t":[10],"b":600},{"n":"Turtwig","g":4,"t":[4],"b":318,"e":[428,429]},{"n":"Grotle","g":4,"t":[4],"b":405,"e":[429]},{"n":"Torterra","g":4,"t":[4,8],"b":525},{"n":"Chimchar","g":4,"t":[1],"b":309,"e":[431,432]},{"n":"Monferno","g":4,"t":[1,6],"b":405,"e":[432]},{"n":"Infernape","g":4,"t":[1,6],"b":534},{"n":"Piplup","g":4,"t":[2],"b":314,"e":[434,435]},{"n":"Prinplup","g":4,"t":[2],"b":405,"e":[435]},{"n":"Empoleon","g":4,"t":[2,16],"b":530},{"n":"Starly","g":4,"t":[0,9],"b":245,"e":[437,438]},{"n":"Staravia","g":4,"t":[0,9],"b":340,"e":[438]},{"n":"Staraptor","g":4,"t":[0,9],"b":485,"bo":{"4":475,"5":475},"mg":[1143]},{"n":"Bidoof","g":4,"t":[0],"b":250,"e":[440]},{"n":"Bibarel","g":4,"t":[0,2],"b":410},{"n":"Kricketot","g":4,"t":[11],"b":194,"e":[442]},{"n":"Kricketune","g":4,"t":[11],"b":384},{"n":"Shinx","g":4,"t":[3],"b":263,"e":[444,445]},{"n":"Luxio","g":4,"t":[3],"b":363,"e":[445]},{"n":"Luxray","g":4,"t":[3],"b":523},{"n":"Budew","g":4,"t":[4,7],"b":280,"e":[355,447]},{"n":"Roserade","g":4,"t":[4,7],"b":515,"bo":{"4":505,"5":505}},{"n":"Cranidos","g":4,"t":[12],"b":350,"e":[449]},{"n":"Rampardos","g":4,"t":[12],"b":495},{"n":"Shieldon","g":4,"t":[12,16],"b":350,"e":[451]},{"n":"Bastiodon","g":4,"t":[12,16],"b":495},{"n":"Burmy","g":4,"t":[11],"b":224,"e":[453,454,455,456]},{"n":"Wormadam","g":4,"t":[11,4],"b":424},{"n":"Wormadam-Sandy","g":4,"t":[11,8],"b":424},{"n":"Wormadam-Trash","g":4,"t":[11,16],"b":424},{"n":"Mothim","g":4,"t":[11,9],"b":424},{"n":"Combee","g":4,"t":[11,9],"b":244,"e":[458]},{"n":"Vespiquen","g":4,"t":[11,9],"b":474},{"n":"Pachirisu","g":4,"t":[3],"b":405},{"n":"Buizel","g":4,"t":[2],"b":330,"e":[461]},{"n":"Floatzel","g":4,"t":[2],"b":495},{"n":"Cherubi","g":4,"t":[4],"b":275,"e":[463]},{"n":"Cherrim","g":4,"t":[4],"b":450},{"n":"Shellos","g":4,"t":[2],"b":325,"e":[465]},{"n":"Gastrodon","g":4,"t":[2,8],"b":475},{"n":"Ambipom","g":4,"t":[0],"b":482},{"n":"Drifloon","g":4,"t":[13,9],"b":348,"e":[468]},{"n":"Drifblim","g":4,"t":[13,9],"b":498},{"n":"Buneary","g":4,"t":[0],"b":350,"e":[470]},{"n":"Lopunny","g":4,"t":[0],"b":480,"mg":[1144]},{"n":"Mismagius","g":4,"t":[13],"b":495},{"n":"Honchkrow","g":4,"t":[15,9],"b":505},{"n":"Glameow","g":4,"t":[0],"b":310,"e":[474]},{"n":"Purugly","g":4,"t":[0],"b":452},{"n":"Chingling","g":4,"t":[10],"b":285,"e":[398]},{"n":"Stunky","g":4,"t":[7,15],"b":329,"e":[477]},{"n":"Skuntank","g":4,"t":[7,15],"b":479},{"n":"Bronzor","g":4,"t":[16,10],"b":300,"e":[479]},{"n":"Bronzong","g":4,"t":[16,10],"b":500},{"n":"Bonsly","g":4,"t":[12],"b":290,"e":[218]},{"n":"Mime Jr.","g":4,"t":[10,17],"b":310,"e":[150,151,931],"to":{"4":[10],"5":[10]}},{"n":"Happiny","g":4,"t":[0],"b":220,"e":[141,280]},{"n":"Chatot","g":4,"t":[0,9],"b":411},{"n":"Spiritomb","g":4,"t":[13,15],"b":485},{"n":"Gible","g":4,"t":[14,8],"b":300,"e":[486,487]},{"n":"Gabite","g":4,"t":[14,8],"b":410,"e":[487]},{"n":"Garchomp","g":4,"t":[14,8],"b":600,"mg":[1145,1146]},{"n":"Munchlax","g":4,"t":[0],"b":390,"e":[172]},{"n":"Riolu","g":4,"t":[6],"b":285,"e":[490]},{"n":"Lucario","g":4,"t":[6,16],"b":525,"mg":[1147,1148]},{"n":"Hippopotas","g":4,"t":[8],"b":330,"e":[492]},{"n":"Hippowdon","g":4,"t":[8],"b":525},{"n":"Skorupi","g":4,"t":[7,11],"b":330,"e":[494]},{"n":"Drapion","g":4,"t":[7,15],"b":500},{"n":"Croagunk","g":4,"t":[7,6],"b":300,"e":[496]},{"n":"Toxicroak","g":4,"t":[7,6],"b":490},{"n":"Carnivine","g":4,"t":[4],"b":454},{"n":"Finneon","g":4,"t":[2],"b":330,"e":[499]},{"n":"Lumineon","g":4,"t":[2],"b":460},{"n":"Mantyke","g":4,"t":[2,9],"b":345,"e":[264]},{"n":"Snover","g":4,"t":[4,5],"b":334,"e":[502]},{"n":"Abomasnow","g":4,"t":[4,5],"b":494,"mg":[1149]},{"n":"Weavile","g":4,"t":[15,5],"b":510},{"n":"Magnezone","g":4,"t":[3,16],"b":535},{"n":"Lickilicky","g":4,"t":[0],"b":515},{"n":"Rhyperior","g":4,"t":[8,12],"b":535},{"n":"Tangrowth","g":4,"t":[4],"b":535},{"n":"Electivire","g":4,"t":[3],"b":540},{"n":"Magmortar","g":4,"t":[1],"b":540},{"n":"Togekiss","g":4,"t":[17,9],"b":545,"to":{"4":[0,9],"5":[0,9]}},{"n":"Yanmega","g":4,"t":[11,9],"b":515},{"n":"Leafeon","g":4,"t":[4],"b":525},{"n":"Glaceon","g":4,"t":[5],"b":525},{"n":"Gliscor","g":4,"t":[8,9],"b":510},{"n":"Mamoswine","g":4,"t":[5,8],"b":530},{"n":"Porygon-Z","g":4,"t":[0],"b":535},{"n":"Gallade","g":4,"t":[10,6],"b":518,"mg":[1150]},{"n":"Probopass","g":4,"t":[12,16],"b":525},{"n":"Dusknoir","g":4,"t":[13],"b":525},{"n":"Froslass","g":4,"t":[5,13],"b":480,"mg":[1151]},{"n":"Rotom","g":4,"t":[3,13],"b":440},{"n":"Rotom-Heat","g":4,"t":[3,1],"b":520,"to":{"4":[3,13]}},{"n":"Rotom-Wash","g":4,"t":[3,2],"b":520,"to":{"4":[3,13]}},{"n":"Rotom-Frost","g":4,"t":[3,5],"b":520,"to":{"4":[3,13]}},{"n":"Rotom-Fan","g":4,"t":[3,9],"b":520,"to":{"4":[3,13]}},{"n":"Rotom-Mow","g":4,"t":[3,4],"b":520,"to":{"4":[3,13]}},{"n":"Uxie","g":4,"t":[10],"b":580},{"n":"Mesprit","g":4,"t":[10],"b":580},{"n":"Azelf","g":4,"t":[10],"b":580},{"n":"Dialga","g":4,"t":[16,14],"b":680},{"n":"Palkia","g":4,"t":[2,14],"b":680},{"n":"Heatran","g":4,"t":[1,16],"b":600,"mg":[1152]},{"n":"Regigigas","g":4,"t":[0],"b":670},{"n":"Giratina","g":4,"t":[13,14],"b":680},{"n":"Cresselia","g":4,"t":[10],"b":580,"bo":{"4":600,"5":600,"6":600,"7":600,"8":600}},{"n":"Phione","g":4,"t":[2],"b":480},{"n":"Manaphy","g":4,"t":[2],"b":600},{"n":"Darkrai","g":4,"t":[15],"b":600,"mg":[1153]},{"n":"Shaymin","g":4,"t":[4],"b":600},{"n":"Arceus","g":4,"t":[0],"b":720},{"n":"Victini","g":5,"t":[10,1],"b":600},{"n":"Snivy","g":5,"t":[4],"b":308,"e":[543,544]},{"n":"Servine","g":5,"t":[4],"b":413,"e":[544]},{"n":"Serperior","g":5,"t":[4],"b":528},{"n":"Tepig","g":5,"t":[1],"b":308,"e":[546,547]},{"n":"Pignite","g":5,"t":[1,6],"b":418,"e":[547]},{"n":"Emboar","g":5,"t":[1,6],"b":528,"mg":[1154]},{"n":"Oshawott","g":5,"t":[2],"b":308,"e":[549,550,551]},{"n":"Dewott","g":5,"t":[2],"b":413,"e":[550,551]},{"n":"Samurott","g":5,"t":[2],"b":528},{"n":"Samurott-Hisui","g":8,"t":[2,15],"b":528},{"n":"Patrat","g":5,"t":[0],"b":255,"e":[553]},{"n":"Watchog","g":5,"t":[0],"b":420},{"n":"Lillipup","g":5,"t":[0],"b":275,"e":[555,556]},{"n":"Herdier","g":5,"t":[0],"b":370,"e":[556]},{"n":"Stoutland","g":5,"t":[0],"b":500,"bo":{"5":490}},{"n":"Purrloin","g":5,"t":[15],"b":281,"e":[558]},{"n":"Liepard","g":5,"t":[15],"b":446},{"n":"Pansage","g":5,"t":[4],"b":316,"e":[560]},{"n":"Simisage","g":5,"t":[4],"b":498},{"n":"Pansear","g":5,"t":[1],"b":316,"e":[562]},{"n":"Simisear","g":5,"t":[1],"b":498},{"n":"Panpour","g":5,"t":[2],"b":316,"e":[564]},{"n":"Simipour","g":5,"t":[2],"b":498},{"n":"Munna","g":5,"t":[10],"b":292,"e":[566]},{"n":"Musharna","g":5,"t":[10],"b":487},{"n":"Pidove","g":5,"t":[0,9],"b":264,"e":[568,569]},{"n":"Tranquill","g":5,"t":[0,9],"b":358,"e":[569]},{"n":"Unfezant","g":5,"t":[0,9],"b":488,"bo":{"5":478}},{"n":"Blitzle","g":5,"t":[3],"b":295,"e":[571]},{"n":"Zebstrika","g":5,"t":[3],"b":497},{"n":"Roggenrola","g":5,"t":[12],"b":280,"e":[573,574]},{"n":"Boldore","g":5,"t":[12],"b":390,"e":[574]},{"n":"Gigalith","g":5,"t":[12],"b":515,"bo":{"5":505}},{"n":"Woobat","g":5,"t":[10,9],"b":323,"e":[576],"bo":{"5":313,"6":313}},{"n":"Swoobat","g":5,"t":[10,9],"b":425},{"n":"Drilbur","g":5,"t":[8],"b":328,"e":[578]},{"n":"Excadrill","g":5,"t":[8,16],"b":508,"mg":[1155]},{"n":"Audino","g":5,"t":[0],"b":445,"mg":[1156]},{"n":"Timburr","g":5,"t":[6],"b":305,"e":[581,582]},{"n":"Gurdurr","g":5,"t":[6],"b":405,"e":[582]},{"n":"Conkeldurr","g":5,"t":[6],"b":505},{"n":"Tympole","g":5,"t":[2],"b":294,"e":[584,585]},{"n":"Palpitoad","g":5,"t":[2,8],"b":384,"e":[585]},{"n":"Seismitoad","g":5,"t":[2,8],"b":509,"bo":{"5":499}},{"n":"Throh","g":5,"t":[6],"b":465},{"n":"Sawk","g":5,"t":[6],"b":465},{"n":"Sewaddle","g":5,"t":[11,4],"b":310,"e":[589,590]},{"n":"Swadloon","g":5,"t":[11,4],"b":380,"e":[590]},{"n":"Leavanny","g":5,"t":[11,4],"b":500,"bo":{"5":490}},{"n":"Venipede","g":5,"t":[11,7],"b":260,"e":[592,593]},{"n":"Whirlipede","g":5,"t":[11,7],"b":360,"e":[593]},{"n":"Scolipede","g":5,"t":[11,7],"b":485,"bo":{"5":475},"mg":[1157]},{"n":"Cottonee","g":5,"t":[4,17],"b":280,"e":[595],"to":{"5":[4]}},{"n":"Whimsicott","g":5,"t":[4,17],"b":480,"to":{"5":[4]}},{"n":"Petilil","g":5,"t":[4],"b":280,"e":[597,598]},{"n":"Lilligant","g":5,"t":[4],"b":480},{"n":"Lilligant-Hisui","g":8,"t":[4,6],"b":480},{"n":"Basculin","g":5,"t":[2],"b":460},{"n":"Sandile","g":5,"t":[8,15],"b":292,"e":[601,602]},{"n":"Krokorok","g":5,"t":[8,15],"b":351,"e":[602]},{"n":"Krookodile","g":5,"t":[8,15],"b":519,"bo":{"5":509}},{"n":"Darumaka","g":5,"t":[1],"b":315,"e":[605]},{"n":"Darumaka-Galar","g":8,"t":[5],"b":315,"e":[606]},{"n":"Darmanitan","g":5,"t":[1],"b":480},{"n":"Darmanitan-Galar","g":8,"t":[5],"b":480},{"n":"Maractus","g":5,"t":[4],"b":461},{"n":"Dwebble","g":5,"t":[11,12],"b":325,"e":[609]},{"n":"Crustle","g":5,"t":[11,12],"b":485,"bo":{"5":475,"6":475}},{"n":"Scraggy","g":5,"t":[15,6],"b":348,"e":[611]},{"n":"Scrafty","g":5,"t":[15,6],"b":488,"mg":[1158]},{"n":"Sigilyph","g":5,"t":[10,9],"b":490},{"n":"Yamask","g":5,"t":[13],"b":303,"e":[615]},{"n":"Yamask-Galar","g":8,"t":[8,13],"b":303,"e":[932]},{"n":"Cofagrigus","g":5,"t":[13],"b":483},{"n":"Tirtouga","g":5,"t":[2,12],"b":355,"e":[617]},{"n":"Carracosta","g":5,"t":[2,12],"b":495},{"n":"Archen","g":5,"t":[12,9],"b":401,"e":[619]},{"n":"Archeops","g":5,"t":[12,9],"b":567},{"n":"Trubbish","g":5,"t":[7],"b":329,"e":[621]},{"n":"Garbodor","g":5,"t":[7],"b":474},{"n":"Zorua","g":5,"t":[15],"b":330,"e":[624]},{"n":"Zorua-Hisui","g":8,"t":[0,13],"b":330,"e":[625]},{"n":"Zoroark","g":5,"t":[15],"b":510},{"n":"Zoroark-Hisui","g":8,"t":[0,13],"b":510},{"n":"Minccino","g":5,"t":[0],"b":300,"e":[627]},{"n":"Cinccino","g":5,"t":[0],"b":470},{"n":"Gothita","g":5,"t":[10],"b":290,"e":[629,630]},{"n":"Gothorita","g":5,"t":[10],"b":390,"e":[630]},{"n":"Gothitelle","g":5,"t":[10],"b":490},{"n":"Solosis","g":5,"t":[10],"b":290,"e":[632,633]},{"n":"Duosion","g":5,"t":[10],"b":370,"e":[633]},{"n":"Reuniclus","g":5,"t":[10],"b":490},{"n":"Ducklett","g":5,"t":[2,9],"b":305,"e":[635]},{"n":"Swanna","g":5,"t":[2,9],"b":473},{"n":"Vanillite","g":5,"t":[5],"b":305,"e":[637,638]},{"n":"Vanillish","g":5,"t":[5],"b":395,"e":[638]},{"n":"Vanilluxe","g":5,"t":[5],"b":535},{"n":"Deerling","g":5,"t":[0,4],"b":335,"e":[640]},{"n":"Sawsbuck","g":5,"t":[0,4],"b":475},{"n":"Emolga","g":5,"t":[3,9],"b":428},{"n":"Karrablast","g":5,"t":[11],"b":315,"e":[643]},{"n":"Escavalier","g":5,"t":[11,16],"b":495},{"n":"Foongus","g":5,"t":[4,7],"b":294,"e":[645]},{"n":"Amoonguss","g":5,"t":[4,7],"b":464},{"n":"Frillish","g":5,"t":[2,13],"b":335,"e":[647]},{"n":"Jellicent","g":5,"t":[2,13],"b":480},{"n":"Alomomola","g":5,"t":[2],"b":470},{"n":"Joltik","g":5,"t":[11,3],"b":319,"e":[650]},{"n":"Galvantula","g":5,"t":[11,3],"b":472},{"n":"Ferroseed","g":5,"t":[4,16],"b":305,"e":[652]},{"n":"Ferrothorn","g":5,"t":[4,16],"b":489},{"n":"Klink","g":5,"t":[16],"b":300,"e":[654,655]},{"n":"Klang","g":5,"t":[16],"b":440,"e":[655]},{"n":"Klinklang","g":5,"t":[16],"b":520},{"n":"Tynamo","g":5,"t":[3],"b":275,"e":[657,658]},{"n":"Eelektrik","g":5,"t":[3],"b":405,"e":[658]},{"n":"Eelektross","g":5,"t":[3],"b":515,"mg":[1159]},{"n":"Elgyem","g":5,"t":[10],"b":335,"e":[660]},{"n":"Beheeyem","g":5,"t":[10],"b":485},{"n":"Litwick","g":5,"t":[13,1],"b":275,"e":[662,663]},{"n":"Lampent","g":5,"t":[13,1],"b":370,"e":[663]},{"n":"Chandelure","g":5,"t":[13,1],"b":520,"mg":[1160]},{"n":"Axew","g":5,"t":[14],"b":320,"e":[665,666]},{"n":"Fraxure","g":5,"t":[14],"b":410,"e":[666]},{"n":"Haxorus","g":5,"t":[14],"b":540},{"n":"Cubchoo","g":5,"t":[5],"b":305,"e":[668]},{"n":"Beartic","g":5,"t":[5],"b":505,"bo":{"5":485,"6":485}},{"n":"Cryogonal","g":5,"t":[5],"b":515,"bo":{"5":485,"6":485}},{"n":"Shelmet","g":5,"t":[11],"b":305,"e":[671]},{"n":"Accelgor","g":5,"t":[11],"b":495},{"n":"Stunfisk","g":5,"t":[8,3],"b":471},{"n":"Stunfisk-Galar","g":8,"t":[8,16],"b":471},{"n":"Mienfoo","g":5,"t":[6],"b":350,"e":[675]},{"n":"Mienshao","g":5,"t":[6],"b":510},{"n":"Druddigon","g":5,"t":[14],"b":485},{"n":"Golett","g":5,"t":[8,13],"b":303,"e":[678]},{"n":"Golurk","g":5,"t":[8,13],"b":483,"mg":[1161]},{"n":"Pawniard","g":5,"t":[15,16],"b":340,"e":[680,1048]},{"n":"Bisharp","g":5,"t":[15,16],"b":490,"e":[1048]},{"n":"Bouffalant","g":5,"t":[0],"b":490},{"n":"Rufflet","g":5,"t":[0,9],"b":350,"e":[683,684]},{"n":"Braviary","g":5,"t":[0,9],"b":510},{"n":"Braviary-Hisui","g":8,"t":[10,9],"b":510},{"n":"Vullaby","g":5,"t":[15,9],"b":370,"e":[686]},{"n":"Mandibuzz","g":5,"t":[15,9],"b":510},{"n":"Heatmor","g":5,"t":[1],"b":484},{"n":"Durant","g":5,"t":[11,16],"b":484},{"n":"Deino","g":5,"t":[15,14],"b":300,"e":[690,691]},{"n":"Zweilous","g":5,"t":[15,14],"b":420,"e":[691]},{"n":"Hydreigon","g":5,"t":[15,14],"b":600},{"n":"Larvesta","g":5,"t":[11,1],"b":360,"e":[693]},{"n":"Volcarona","g":5,"t":[11,1],"b":550},{"n":"Cobalion","g":5,"t":[16,6],"b":580},{"n":"Terrakion","g":5,"t":[12,6],"b":580},{"n":"Virizion","g":5,"t":[4,6],"b":580},{"n":"Tornadus","g":5,"t":[9],"b":580},{"n":"Thundurus","g":5,"t":[3,9],"b":580},{"n":"Reshiram","g":5,"t":[14,1],"b":680},{"n":"Zekrom","g":5,"t":[14,3],"b":680},{"n":"Landorus","g":5,"t":[8,9],"b":600},{"n":"Kyurem","g":5,"t":[14,5],"b":660},{"n":"Keldeo","g":5,"t":[2,6],"b":580},{"n":"Meloetta","g":5,"t":[0,10],"b":600},{"n":"Genesect","g":5,"t":[11,16],"b":600},{"n":"Chespin","g":6,"t":[4],"b":313,"e":[707,708]},{"n":"Quilladin","g":6,"t":[4],"b":405,"e":[708]},{"n":"Chesnaught","g":6,"t":[4,6],"b":530,"mg":[1162]},{"n":"Fennekin","g":6,"t":[1],"b":307,"e":[710,711]},{"n":"Braixen","g":6,"t":[1],"b":409,"e":[711]},{"n":"Delphox","g":6,"t":[1,10],"b":534,"mg":[1163]},{"n":"Froakie","g":6,"t":[2],"b":314,"e":[713,714]},{"n":"Frogadier","g":6,"t":[2],"b":405,"e":[714]},{"n":"Greninja","g":6,"t":[2,15],"b":530,"mg":[1164]},{"n":"Bunnelby","g":6,"t":[0],"b":237,"e":[716]},{"n":"Diggersby","g":6,"t":[0,8],"b":423},{"n":"Fletchling","g":6,"t":[0,9],"b":278,"e":[718,719]},{"n":"Fletchinder","g":6,"t":[1,9],"b":382,"e":[719]},{"n":"Talonflame","g":6,"t":[1,9],"b":499},{"n":"Scatterbug","g":6,"t":[11],"b":200,"e":[721,722]},{"n":"Spewpa","g":6,"t":[11],"b":213,"e":[722]},{"n":"Vivillon","g":6,"t":[11,9],"b":411},{"n":"Litleo","g":6,"t":[1,0],"b":369,"e":[724]},{"n":"Pyroar","g":6,"t":[1,0],"b":507,"mg":[1165]},{"n":"Flabébé","g":6,"t":[17],"b":303,"e":[726,727]},{"n":"Floette","g":6,"t":[17],"b":371,"e":[727],"mg":[1166]},{"n":"Florges","g":6,"t":[17],"b":552},{"n":"Skiddo","g":6,"t":[4],"b":350,"e":[729]},{"n":"Gogoat","g":6,"t":[4],"b":531},{"n":"Pancham","g":6,"t":[6],"b":348,"e":[731]},{"n":"Pangoro","g":6,"t":[6,15],"b":495},{"n":"Furfrou","g":6,"t":[0],"b":472},{"n":"Espurr","g":6,"t":[10],"b":355,"e":[734]},{"n":"Meowstic","g":6,"t":[10],"b":466},{"n":"Honedge","g":6,"t":[16,13],"b":325,"e":[736,737]},{"n":"Doublade","g":6,"t":[16,13],"b":448,"e":[737]},{"n":"Aegislash","g":6,"t":[16,13],"b":500,"bo":{"6":520,"7":520}},{"n":"Spritzee","g":6,"t":[17],"b":341,"e":[739]},{"n":"Aromatisse","g":6,"t":[17],"b":462},{"n":"Swirlix","g":6,"t":[17],"b":341,"e":[741]},{"n":"Slurpuff","g":6,"t":[17],"b":480},{"n":"Inkay","g":6,"t":[15,10],"b":288,"e":[743]},{"n":"Malamar","g":6,"t":[15,10],"b":482,"mg":[1167]},{"n":"Binacle","g":6,"t":[12,2],"b":306,"e":[745]},{"n":"Barbaracle","g":6,"t":[12,2],"b":500,"mg":[1168]},{"n":"Skrelp","g":6,"t":[7,2],"b":320,"e":[747]},{"n":"Dragalge","g":6,"t":[7,14],"b":494,"mg":[1169]},{"n":"Clauncher","g":6,"t":[2],"b":330,"e":[749]},{"n":"Clawitzer","g":6,"t":[2],"b":500},{"n":"Helioptile","g":6,"t":[3,0],"b":289,"e":[751]},{"n":"Heliolisk","g":6,"t":[3,0],"b":481},{"n":"Tyrunt","g":6,"t":[12,14],"b":362,"e":[753]},{"n":"Tyrantrum","g":6,"t":[12,14],"b":521},{"n":"Amaura","g":6,"t":[12,5],"b":362,"e":[755]},{"n":"Aurorus","g":6,"t":[12,5],"b":521},{"n":"Sylveon","g":6,"t":[17],"b":525},{"n":"Hawlucha","g":6,"t":[6,9],"b":500,"mg":[1170]},{"n":"Dedenne","g":6,"t":[3,17],"b":431},{"n":"Carbink","g":6,"t":[12,17],"b":500},{"n":"Goomy","g":6,"t":[14],"b":300,"e":[761,762,763,764]},{"n":"Sliggoo","g":6,"t":[14],"b":452,"e":[763]},{"n":"Sliggoo-Hisui","g":8,"t":[16,14],"b":452,"e":[764]},{"n":"Goodra","g":6,"t":[14],"b":600},{"n":"Goodra-Hisui","g":8,"t":[16,14],"b":600},{"n":"Klefki","g":6,"t":[16,17],"b":470},{"n":"Phantump","g":6,"t":[13,4],"b":309,"e":[767]},{"n":"Trevenant","g":6,"t":[13,4],"b":474},{"n":"Pumpkaboo","g":6,"t":[13,4],"b":335,"e":[769]},{"n":"Gourgeist","g":6,"t":[13,4],"b":494},{"n":"Bergmite","g":6,"t":[5],"b":304,"e":[771,772]},{"n":"Avalugg","g":6,"t":[5],"b":514},{"n":"Avalugg-Hisui","g":8,"t":[5,12],"b":514},{"n":"Noibat","g":6,"t":[9,14],"b":245,"e":[774]},{"n":"Noivern","g":6,"t":[9,14],"b":535},{"n":"Xerneas","g":6,"t":[17],"b":680},{"n":"Yveltal","g":6,"t":[15,9],"b":680},{"n":"Zygarde","g":6,"t":[14,8],"b":600,"mg":[1171]},{"n":"Diancie","g":6,"t":[12,17],"b":600,"mg":[1172]},{"n":"Hoopa","g":6,"t":[10,13],"b":600},{"n":"Volcanion","g":6,"t":[1,2],"b":600},{"n":"Rowlet","g":7,"t":[4,9],"b":320,"e":[782,783,784]},{"n":"Dartrix","g":7,"t":[4,9],"b":420,"e":[783,784]},{"n":"Decidueye","g":7,"t":[4,13],"b":530},{"n":"Decidueye-Hisui","g":8,"t":[4,6],"b":530},{"n":"Litten","g":7,"t":[1],"b":320,"e":[786,787]},{"n":"Torracat","g":7,"t":[1],"b":420,"e":[787]},{"n":"Incineroar","g":7,"t":[1,15],"b":530},{"n":"Popplio","g":7,"t":[2],"b":320,"e":[789,790]},{"n":"Brionne","g":7,"t":[2],"b":420,"e":[790]},{"n":"Primarina","g":7,"t":[2,17],"b":530},{"n":"Pikipek","g":7,"t":[0,9],"b":265,"e":[792,793]},{"n":"Trumbeak","g":7,"t":[0,9],"b":355,"e":[793]},{"n":"Toucannon","g":7,"t":[0,9],"b":485},{"n":"Yungoos","g":7,"t":[0],"b":253,"e":[795]},{"n":"Gumshoos","g":7,"t":[0],"b":418},{"n":"Grubbin","g":7,"t":[11],"b":300,"e":[797,798]},{"n":"Charjabug","g":7,"t":[11,3],"b":400,"e":[798]},{"n":"Vikavolt","g":7,"t":[11,3],"b":500},{"n":"Crabrawler","g":7,"t":[6],"b":338,"e":[800]},{"n":"Crabominable","g":7,"t":[6,5],"b":478,"mg":[1173]},{"n":"Oricorio","g":7,"t":[1,9],"b":476},{"n":"Oricorio-Pom-Pom","g":7,"t":[3,9],"b":476},{"n":"Oricorio-Pa'u","g":7,"t":[10,9],"b":476},{"n":"Oricorio-Sensu","g":7,"t":[13,9],"b":476},{"n":"Cutiefly","g":7,"t":[11,17],"b":304,"e":[806]},{"n":"Ribombee","g":7,"t":[11,17],"b":464},{"n":"Rockruff","g":7,"t":[12],"b":280,"e":[808,809]},{"n":"Lycanroc","g":7,"t":[12],"b":487},{"n":"Lycanroc-Midnight","g":7,"t":[12],"b":487},{"n":"Lycanroc-Dusk","g":7,"t":[12],"b":487},{"n":"Wishiwashi","g":7,"t":[2],"b":175},{"n":"Mareanie","g":7,"t":[7,2],"b":305,"e":[813]},{"n":"Toxapex","g":7,"t":[7,2],"b":495},{"n":"Mudbray","g":7,"t":[8],"b":385,"e":[815]},{"n":"Mudsdale","g":7,"t":[8],"b":500},{"n":"Dewpider","g":7,"t":[2,11],"b":269,"e":[817]},{"n":"Araquanid","g":7,"t":[2,11],"b":454},{"n":"Fomantis","g":7,"t":[4],"b":250,"e":[819]},{"n":"Lurantis","g":7,"t":[4],"b":480},{"n":"Morelull","g":7,"t":[4,17],"b":285,"e":[821]},{"n":"Shiinotic","g":7,"t":[4,17],"b":405},{"n":"Salandit","g":7,"t":[7,1],"b":320,"e":[823]},{"n":"Salazzle","g":7,"t":[7,1],"b":480},{"n":"Stufful","g":7,"t":[0,6],"b":340,"e":[825]},{"n":"Bewear","g":7,"t":[0,6],"b":500},{"n":"Bounsweet","g":7,"t":[4],"b":210,"e":[827,828]},{"n":"Steenee","g":7,"t":[4],"b":290,"e":[828]},{"n":"Tsareena","g":7,"t":[4],"b":510},{"n":"Comfey","g":7,"t":[17],"b":485},{"n":"Oranguru","g":7,"t":[0,10],"b":490},{"n":"Passimian","g":7,"t":[6],"b":490},{"n":"Wimpod","g":7,"t":[11,2],"b":230,"e":[833]},{"n":"Golisopod","g":7,"t":[11,2],"b":530,"mg":[1174]},{"n":"Sandygast","g":7,"t":[13,8],"b":320,"e":[835]},{"n":"Palossand","g":7,"t":[13,8],"b":480},{"n":"Pyukumuku","g":7,"t":[2],"b":410},{"n":"Type: Null","g":7,"t":[0],"b":534,"e":[838]},{"n":"Silvally","g":7,"t":[0],"b":570},{"n":"Minior","g":7,"t":[12,9],"b":500},{"n":"Komala","g":7,"t":[0],"b":480},{"n":"Turtonator","g":7,"t":[1,14],"b":485},{"n":"Togedemaru","g":7,"t":[3,16],"b":435},{"n":"Mimikyu","g":7,"t":[13,17],"b":476},{"n":"Bruxish","g":7,"t":[2,10],"b":475},{"n":"Drampa","g":7,"t":[0,14],"b":485,"mg":[1175]},{"n":"Dhelmise","g":7,"t":[13,4],"b":517},{"n":"Jangmo-o","g":7,"t":[14],"b":300,"e":[848,849]},{"n":"Hakamo-o","g":7,"t":[14,6],"b":420,"e":[849]},{"n":"Kommo-o","g":7,"t":[14,6],"b":600},{"n":"Tapu Koko","g":7,"t":[3,17],"b":570},{"n":"Tapu Lele","g":7,"t":[10,17],"b":570},{"n":"Tapu Bulu","g":7,"t":[4,17],"b":570},{"n":"Tapu Fini","g":7,"t":[2,17],"b":570},{"n":"Cosmog","g":7,"t":[10],"b":200,"e":[855,856,857]},{"n":"Cosmoem","g":7,"t":[10],"b":400,"e":[856,857]},{"n":"Solgaleo","g":7,"t":[10,16],"b":680},{"n":"Lunala","g":7,"t":[10,13],"b":680},{"n":"Nihilego","g":7,"t":[12,7],"b":570},{"n":"Buzzwole","g":7,"t":[11,6],"b":570},{"n":"Pheromosa","g":7,"t":[11,6],"b":570},{"n":"Xurkitree","g":7,"t":[3],"b":570},{"n":"Celesteela","g":7,"t":[16,9],"b":570},{"n":"Kartana","g":7,"t":[4,16],"b":570},{"n":"Guzzlord","g":7,"t":[15,14],"b":570},{"n":"Necrozma","g":7,"t":[10],"b":600},{"n":"Magearna","g":7,"t":[16,17],"b":600,"mg":[1176]},{"n":"Marshadow","g":7,"t":[6,13],"b":600},{"n":"Poipole","g":7,"t":[7],"b":420,"e":[869]},{"n":"Naganadel","g":7,"t":[7,14],"b":540},{"n":"Stakataka","g":7,"t":[12,16],"b":570},{"n":"Blacephalon","g":7,"t":[1,13],"b":570},{"n":"Zeraora","g":7,"t":[3],"b":600,"mg":[1177]},{"n":"Meltan","g":7,"t":[16],"b":300},{"n":"Melmetal","g":7,"t":[16],"b":600},{"n":"Grookey","g":8,"t":[4],"b":310,"e":[876,877]},{"n":"Thwackey","g":8,"t":[4],"b":420,"e":[877]},{"n":"Rillaboom","g":8,"t":[4],"b":530},{"n":"Scorbunny","g":8,"t":[1],"b":310,"e":[879,880]},{"n":"Raboot","g":8,"t":[1],"b":420,"e":[880]},{"n":"Cinderace","g":8,"t":[1],"b":530},{"n":"Sobble","g":8,"t":[2],"b":310,"e":[882,883]},{"n":"Drizzile","g":8,"t":[2],"b":420,"e":[883]},{"n":"Inteleon","g":8,"t":[2],"b":530},{"n":"Skwovet","g":8,"t":[0],"b":275,"e":[885]},{"n":"Greedent","g":8,"t":[0],"b":460},{"n":"Rookidee","g":8,"t":[9],"b":245,"e":[887,888]},{"n":"Corvisquire","g":8,"t":[9],"b":365,"e":[888]},{"n":"Corviknight","g":8,"t":[9,16],"b":495},{"n":"Blipbug","g":8,"t":[11],"b":180,"e":[890,891]},{"n":"Dottler","g":8,"t":[11,10],"b":335,"e":[891]},{"n":"Orbeetle","g":8,"t":[11,10],"b":505},{"n":"Nickit","g":8,"t":[15],"b":245,"e":[893]},{"n":"Thievul","g":8,"t":[15],"b":455},{"n":"Gossifleur","g":8,"t":[4],"b":250,"e":[895]},{"n":"Eldegoss","g":8,"t":[4],"b":460},{"n":"Wooloo","g":8,"t":[0],"b":270,"e":[897]},{"n":"Dubwool","g":8,"t":[0],"b":490},{"n":"Chewtle","g":8,"t":[2],"b":284,"e":[899]},{"n":"Drednaw","g":8,"t":[2,12],"b":485},{"n":"Yamper","g":8,"t":[3],"b":270,"e":[901]},{"n":"Boltund","g":8,"t":[3],"b":490},{"n":"Rolycoly","g":8,"t":[12],"b":240,"e":[903,904]},{"n":"Carkol","g":8,"t":[12,1],"b":410,"e":[904]},{"n":"Coalossal","g":8,"t":[12,1],"b":510},{"n":"Applin","g":8,"t":[4,14],"b":260,"e":[906,907,1076,1084]},{"n":"Flapple","g":8,"t":[4,14],"b":485},{"n":"Appletun","g":8,"t":[4,14],"b":485},{"n":"Silicobra","g":8,"t":[8],"b":315,"e":[909]},{"n":"Sandaconda","g":8,"t":[8],"b":510},{"n":"Cramorant","g":8,"t":[9,2],"b":475},{"n":"Arrokuda","g":8,"t":[2],"b":280,"e":[912]},{"n":"Barraskewda","g":8,"t":[2],"b":490},{"n":"Toxel","g":8,"t":[3,7],"b":242,"e":[914]},{"n":"Toxtricity","g":8,"t":[3,7],"b":502},{"n":"Sizzlipede","g":8,"t":[1,11],"b":305,"e":[916]},{"n":"Centiskorch","g":8,"t":[1,11],"b":525},{"n":"Clobbopus","g":8,"t":[6],"b":310,"e":[918]},{"n":"Grapploct","g":8,"t":[6],"b":480},{"n":"Sinistea","g":8,"t":[13],"b":308,"e":[920]},{"n":"Polteageist","g":8,"t":[13],"b":508},{"n":"Hatenna","g":8,"t":[10],"b":265,"e":[922,923]},{"n":"Hattrem","g":8,"t":[10],"b":370,"e":[923]},{"n":"Hatterene","g":8,"t":[10,17],"b":510},{"n":"Impidimp","g":8,"t":[15,17],"b":265,"e":[925,926]},{"n":"Morgrem","g":8,"t":[15,17],"b":370,"e":[926]},{"n":"Grimmsnarl","g":8,"t":[15,17],"b":510},{"n":"Obstagoon","g":8,"t":[15,0],"b":520},{"n":"Perrserker","g":8,"t":[16],"b":440},{"n":"Cursola","g":8,"t":[13],"b":510},{"n":"Sirfetch’d","g":8,"t":[6],"b":507},{"n":"Mr. Rime","g":8,"t":[5,10],"b":520},{"n":"Runerigus","g":8,"t":[8,13],"b":483},{"n":"Milcery","g":8,"t":[17],"b":270,"e":[934]},{"n":"Alcremie","g":8,"t":[17],"b":495},{"n":"Falinks","g":8,"t":[6],"b":470,"mg":[1178]},{"n":"Pincurchin","g":8,"t":[3],"b":435},{"n":"Snom","g":8,"t":[5,11],"b":185,"e":[938]},{"n":"Frosmoth","g":8,"t":[5,11],"b":475},{"n":"Stonjourner","g":8,"t":[12],"b":470},{"n":"Eiscue","g":8,"t":[5],"b":470},{"n":"Indeedee","g":8,"t":[10,0],"b":475},{"n":"Morpeko","g":8,"t":[3,15],"b":436},{"n":"Cufant","g":8,"t":[16],"b":330,"e":[944]},{"n":"Copperajah","g":8,"t":[16],"b":500},{"n":"Dracozolt","g":8,"t":[3,14],"b":505},{"n":"Arctozolt","g":8,"t":[3,5],"b":505},{"n":"Dracovish","g":8,"t":[2,14],"b":505},{"n":"Arctovish","g":8,"t":[2,5],"b":505},{"n":"Duraludon","g":8,"t":[16,14],"b":535,"e":[1083]},{"n":"Dreepy","g":8,"t":[14,13],"b":270,"e":[951,952]},{"n":"Drakloak","g":8,"t":[14,13],"b":410,"e":[952]},{"n":"Dragapult","g":8,"t":[14,13],"b":600},{"n":"Zacian","g":8,"t":[17],"b":660,"bo":{"8":670}},{"n":"Zamazenta","g":8,"t":[6],"b":660,"bo":{"8":670}},{"n":"Eternatus","g":8,"t":[7,14],"b":690},{"n":"Kubfu","g":8,"t":[6],"b":385,"e":[957]},{"n":"Urshifu","g":8,"t":[6,15],"b":550},{"n":"Zarude","g":8,"t":[15,4],"b":600},{"n":"Regieleki","g":8,"t":[3],"b":580},{"n":"Regidrago","g":8,"t":[14],"b":580},{"n":"Glastrier","g":8,"t":[5],"b":580},{"n":"Spectrier","g":8,"t":[13],"b":580},{"n":"Calyrex","g":8,"t":[10,4],"b":500},{"n":"Wyrdeer","g":8,"t":[0,10],"b":525},{"n":"Kleavor","g":8,"t":[11,12],"b":500},{"n":"Ursaluna","g":8,"t":[8,0],"b":550},{"n":"Basculegion","g":8,"t":[2,13],"b":530},{"n":"Sneasler","g":8,"t":[6,7],"b":510},{"n":"Overqwil","g":8,"t":[15,7],"b":510},{"n":"Enamorus","g":8,"t":[17,9],"b":580},{"n":"Sprigatito","g":9,"t":[4],"b":310,"e":[972,973]},{"n":"Floragato","g":9,"t":[4],"b":410,"e":[973]},{"n":"Meowscarada","g":9,"t":[4,15],"b":530},{"n":"Fuecoco","g":9,"t":[1],"b":310,"e":[975,976]},{"n":"Crocalor","g":9,"t":[1],"b":411,"e":[976]},{"n":"Skeledirge","g":9,"t":[1,13],"b":530},{"n":"Quaxly","g":9,"t":[2],"b":310,"e":[978,979]},{"n":"Quaxwell","g":9,"t":[2],"b":410,"e":[979]},{"n":"Quaquaval","g":9,"t":[2,6],"b":530},{"n":"Lechonk","g":9,"t":[0],"b":254,"e":[981]},{"n":"Oinkologne","g":9,"t":[0],"b":489},{"n":"Tarountula","g":9,"t":[11],"b":210,"e":[983]},{"n":"Spidops","g":9,"t":[11],"b":404},{"n":"Nymble","g":9,"t":[11],"b":210,"e":[985]},{"n":"Lokix","g":9,"t":[11,15],"b":450},{"n":"Pawmi","g":9,"t":[3],"b":240,"e":[987,988]},{"n":"Pawmo","g":9,"t":[3,6],"b":350,"e":[988]},{"n":"Pawmot","g":9,"t":[3,6],"b":490},{"n":"Tandemaus","g":9,"t":[0],"b":305,"e":[990]},{"n":"Maushold","g":9,"t":[0],"b":470},{"n":"Fidough","g":9,"t":[17],"b":312,"e":[992]},{"n":"Dachsbun","g":9,"t":[17],"b":477},{"n":"Smoliv","g":9,"t":[4,0],"b":260,"e":[994,995]},{"n":"Dolliv","g":9,"t":[4,0],"b":354,"e":[995]},{"n":"Arboliva","g":9,"t":[4,0],"b":510},{"n":"Squawkabilly","g":9,"t":[0,9],"b":417},{"n":"Nacli","g":9,"t":[12],"b":280,"e":[998,999]},{"n":"Naclstack","g":9,"t":[12],"b":355,"e":[999]},{"n":"Garganacl","g":9,"t":[12],"b":500},{"n":"Charcadet","g":9,"t":[1],"b":255,"e":[1001,1002]},{"n":"Armarouge","g":9,"t":[1,10],"b":525},{"n":"Ceruledge","g":9,"t":[1,13],"b":525},{"n":"Tadbulb","g":9,"t":[3],"b":272,"e":[1004]},{"n":"Bellibolt","g":9,"t":[3],"b":495},{"n":"Wattrel","g":9,"t":[3,9],"b":280,"e":[1006]},{"n":"Kilowattrel","g":9,"t":[3,9],"b":490},{"n":"Maschiff","g":9,"t":[15],"b":340,"e":[1008]},{"n":"Mabosstiff","g":9,"t":[15],"b":505},{"n":"Shroodle","g":9,"t":[7,0],"b":290,"e":[1010]},{"n":"Grafaiai","g":9,"t":[7,0],"b":485},{"n":"Bramblin","g":9,"t":[4,13],"b":275,"e":[1012]},{"n":"Brambleghast","g":9,"t":[4,13],"b":480},{"n":"Toedscool","g":9,"t":[8,4],"b":335,"e":[1014]},{"n":"Toedscruel","g":9,"t":[8,4],"b":515},{"n":"Klawf","g":9,"t":[12],"b":450},{"n":"Capsakid","g":9,"t":[4],"b":304,"e":[1017]},{"n":"Scovillain","g":9,"t":[4,1],"b":486,"mg":[1179]},{"n":"Rellor","g":9,"t":[11],"b":270,"e":[1019]},{"n":"Rabsca","g":9,"t":[11,10],"b":470},{"n":"Flittle","g":9,"t":[10],"b":255,"e":[1021]},{"n":"Espathra","g":9,"t":[10],"b":481},{"n":"Tinkatink","g":9,"t":[17,16],"b":297,"e":[1023,1024]},{"n":"Tinkatuff","g":9,"t":[17,16],"b":380,"e":[1024]},{"n":"Tinkaton","g":9,"t":[17,16],"b":506},{"n":"Wiglett","g":9,"t":[2],"b":245,"e":[1026]},{"n":"Wugtrio","g":9,"t":[2],"b":425},{"n":"Bombirdier","g":9,"t":[9,15],"b":485},{"n":"Finizen","g":9,"t":[2],"b":315,"e":[1029]},{"n":"Palafin","g":9,"t":[2],"b":457},{"n":"Varoom","g":9,"t":[16,7],"b":300,"e":[1031]},{"n":"Revavroom","g":9,"t":[16,7],"b":500},{"n":"Cyclizar","g":9,"t":[14,0],"b":501},{"n":"Orthworm","g":9,"t":[16],"b":480},{"n":"Glimmet","g":9,"t":[12,7],"b":350,"e":[1035]},{"n":"Glimmora","g":9,"t":[12,7],"b":525,"mg":[1180]},{"n":"Greavard","g":9,"t":[13],"b":290,"e":[1037]},{"n":"Houndstone","g":9,"t":[13],"b":488},{"n":"Flamigo","g":9,"t":[9,6],"b":500},{"n":"Cetoddle","g":9,"t":[5],"b":334,"e":[1040]},{"n":"Cetitan","g":9,"t":[5],"b":521},{"n":"Veluza","g":9,"t":[2,10],"b":478},{"n":"Dondozo","g":9,"t":[2],"b":530},{"n":"Tatsugiri","g":9,"t":[14,2],"b":475},{"n":"Annihilape","g":9,"t":[6,13],"b":535},{"n":"Clodsire","g":9,"t":[7,8],"b":430},{"n":"Farigiraf","g":9,"t":[0,10],"b":520},{"n":"Dudunsparce","g":9,"t":[0],"b":520},{"n":"Kingambit","g":9,"t":[15,16],"b":550},{"n":"Great Tusk","g":9,"t":[8,6],"b":570},{"n":"Scream Tail","g":9,"t":[17,10],"b":570},{"n":"Brute Bonnet","g":9,"t":[4,15],"b":570},{"n":"Flutter Mane","g":9,"t":[13,17],"b":570},{"n":"Slither Wing","g":9,"t":[11,6],"b":570},{"n":"Sandy Shocks","g":9,"t":[3,8],"b":570},{"n":"Iron Treads","g":9,"t":[8,16],"b":570},{"n":"Iron Bundle","g":9,"t":[5,2],"b":570},{"n":"Iron Hands","g":9,"t":[6,3],"b":570},{"n":"Iron Jugulis","g":9,"t":[15,9],"b":570},{"n":"Iron Moth","g":9,"t":[1,7],"b":570},{"n":"Iron Thorns","g":9,"t":[12,3],"b":570},{"n":"Frigibax","g":9,"t":[14,5],"b":320,"e":[1062,1063]},{"n":"Arctibax","g":9,"t":[14,5],"b":423,"e":[1063]},{"n":"Baxcalibur","g":9,"t":[14,5],"b":600,"mg":[1181]},{"n":"Gimmighoul","g":9,"t":[13],"b":300,"e":[1065]},{"n":"Gholdengo","g":9,"t":[16,13],"b":550},{"n":"Wo-Chien","g":9,"t":[15,4],"b":570},{"n":"Chien-Pao","g":9,"t":[15,5],"b":570},{"n":"Ting-Lu","g":9,"t":[15,8],"b":570},{"n":"Chi-Yu","g":9,"t":[15,1],"b":570},{"n":"Roaring Moon","g":9,"t":[14,15],"b":590},{"n":"Iron Valiant","g":9,"t":[17,6],"b":590},{"n":"Koraidon","g":9,"t":[6,14],"b":670},{"n":"Miraidon","g":9,"t":[3,14],"b":670},{"n":"Walking Wake","g":9,"t":[2,14],"b":590},{"n":"Iron Leaves","g":9,"t":[4,10],"b":590},{"n":"Dipplin","g":9,"t":[4,14],"b":485,"e":[1084]},{"n":"Poltchageist","g":9,"t":[4,13],"b":308,"e":[1078]},{"n":"Sinistcha","g":9,"t":[4,13],"b":508},{"n":"Okidogi","g":9,"t":[7,6],"b":555},{"n":"Munkidori","g":9,"t":[7,10],"b":555},{"n":"Fezandipiti","g":9,"t":[7,17],"b":555},{"n":"Ogerpon","g":9,"t":[4],"b":550},{"n":"Archaludon","g":9,"t":[16,14],"b":600},{"n":"Hydrapple","g":9,"t":[4,14],"b":540},{"n":"Gouging Fire","g":9,"t":[1,14],"b":590},{"n":"Raging Bolt","g":9,"t":[3,14],"b":590},{"n":"Iron Boulder","g":9,"t":[12,10],"b":590},{"n":"Iron Crown","g":9,"t":[16,10],"b":590},{"n":"Terapagos","g":9,"t":[0],"b":450},{"n":"Pecharunt","g":9,"t":[7,13],"b":600},{"n":"Mega Venusaur","g":6,"t":[4,7],"b":625,"m":1,"base":2},{"n":"Mega Charizard X","g":6,"t":[1,14],"b":634,"m":1,"base":5},{"n":"Mega Charizard Y","g":6,"t":[1,9],"b":634,"m":1,"base":5},{"n":"Mega Blastoise","g":6,"t":[2],"b":630,"m":1,"base":8},{"n":"Mega Beedrill","g":6,"t":[11,7],"b":495,"m":1,"base":14},{"n":"Mega Pidgeot","g":6,"t":[0,9],"b":579,"m":1,"base":17},{"n":"Mega Raichu X","g":9,"t":[3],"b":585,"m":1,"base":27},{"n":"Mega Raichu Y","g":9,"t":[3],"b":585,"m":1,"base":27},{"n":"Mega Clefable","g":9,"t":[17,9],"b":583,"m":1,"base":40},{"n":"Mega Alakazam","g":6,"t":[10],"b":600,"m":1,"base":78},{"n":"Mega Victreebel","g":9,"t":[4,7],"b":590,"m":1,"base":84},{"n":"Mega Slowbro","g":6,"t":[2,10],"b":590,"m":1,"base":99},{"n":"Mega Gengar","g":6,"t":[13,7],"b":600,"m":1,"base":117},{"n":"Mega Kangaskhan","g":6,"t":[0],"b":590,"m":1,"base":143},{"n":"Mega Starmie","g":9,"t":[2,10],"b":620,"m":1,"base":149},{"n":"Mega Pinsir","g":6,"t":[11,9],"b":600,"m":1,"base":156},{"n":"Mega Gyarados","g":6,"t":[2,15],"b":640,"m":1,"base":159},{"n":"Mega Aerodactyl","g":6,"t":[12,9],"b":615,"m":1,"base":171},{"n":"Mega Dragonite","g":9,"t":[14,9],"b":700,"m":1,"base":181},{"n":"Mega Mewtwo X","g":6,"t":[10,6],"b":780,"m":1,"base":182},{"n":"Mega Mewtwo Y","g":6,"t":[10],"b":780,"m":1,"base":182},{"n":"Mega Meganium","g":9,"t":[4,17],"b":625,"m":1,"base":186},{"n":"Mega Feraligatr","g":9,"t":[2,14],"b":630,"m":1,"base":193},{"n":"Mega Ampharos","g":6,"t":[3,14],"b":610,"m":1,"base":214},{"n":"Mega Steelix","g":6,"t":[16,8],"b":610,"m":1,"base":243},{"n":"Mega Scizor","g":6,"t":[11,16],"b":600,"m":1,"base":248},{"n":"Mega Heracross","g":6,"t":[11,6],"b":600,"m":1,"base":250},{"n":"Mega Skarmory","g":9,"t":[16,9],"b":565,"m":1,"base":265},{"n":"Mega Houndoom","g":6,"t":[15,1],"b":600,"m":1,"base":267},{"n":"Mega Tyranitar","g":6,"t":[12,15],"b":700,"m":1,"base":286},{"n":"Mega Sceptile","g":6,"t":[4,14],"b":630,"m":1,"base":292},{"n":"Mega Blaziken","g":6,"t":[1,6],"b":630,"m":1,"base":295},{"n":"Mega Swampert","g":6,"t":[2,8],"b":635,"m":1,"base":298},{"n":"Mega Gardevoir","g":6,"t":[10,17],"b":618,"m":1,"base":322},{"n":"Mega Sableye","g":6,"t":[15,13],"b":480,"m":1,"base":342},{"n":"Mega Mawile","g":6,"t":[16,17],"b":480,"m":1,"base":343},{"n":"Mega Aggron","g":6,"t":[16],"b":630,"m":1,"base":346},{"n":"Mega Medicham","g":6,"t":[6,10],"b":510,"m":1,"base":348},{"n":"Mega Manectric","g":6,"t":[3],"b":575,"m":1,"base":350},{"n":"Mega Sharpedo","g":6,"t":[2,15],"b":560,"m":1,"base":359},{"n":"Mega Camerupt","g":6,"t":[1,8],"b":560,"m":1,"base":363},{"n":"Mega Altaria","g":6,"t":[14,17],"b":590,"m":1,"base":374},{"n":"Mega Banette","g":6,"t":[13],"b":555,"m":1,"base":394},{"n":"Mega Chimecho","g":9,"t":[10,16],"b":555,"m":1,"base":398},{"n":"Mega Absol","g":6,"t":[15],"b":565,"m":1,"base":399},{"n":"Mega Absol Z","g":9,"t":[15,13],"b":565,"m":1,"base":399},{"n":"Mega Glalie","g":6,"t":[5],"b":580,"m":1,"base":402},{"n":"Mega Salamence","g":6,"t":[14,9],"b":700,"m":1,"base":413},{"n":"Mega Metagross","g":6,"t":[16,10],"b":700,"m":1,"base":416},{"n":"Mega Latias","g":6,"t":[14,10],"b":700,"m":1,"base":420},{"n":"Mega Latios","g":6,"t":[14,10],"b":700,"m":1,"base":421},{"n":"Mega Rayquaza","g":6,"t":[14,9],"b":780,"m":1,"base":424},{"n":"Mega Staraptor","g":9,"t":[6,9],"b":585,"m":1,"base":438},{"n":"Mega Lopunny","g":6,"t":[0,6],"b":580,"m":1,"base":470},{"n":"Mega Garchomp","g":6,"t":[14,8],"b":700,"m":1,"base":487},{"n":"Mega Garchomp Z","g":9,"t":[14],"b":700,"m":1,"base":487},{"n":"Mega Lucario","g":6,"t":[6,16],"b":625,"m":1,"base":490},{"n":"Mega Lucario Z","g":9,"t":[6,16],"b":625,"m":1,"base":490},{"n":"Mega Abomasnow","g":6,"t":[4,5],"b":594,"m":1,"base":502},{"n":"Mega Gallade","g":6,"t":[10,6],"b":618,"m":1,"base":517},{"n":"Mega Froslass","g":9,"t":[5,13],"b":580,"m":1,"base":520},{"n":"Mega Heatran","g":9,"t":[1,16],"b":700,"m":1,"base":532},{"n":"Mega Darkrai","g":9,"t":[15],"b":700,"m":1,"base":538},{"n":"Mega Emboar","g":9,"t":[1,6],"b":628,"m":1,"base":547},{"n":"Mega Excadrill","g":9,"t":[8,16],"b":608,"m":1,"base":578},{"n":"Mega Audino","g":6,"t":[0,17],"b":545,"m":1,"base":579},{"n":"Mega Scolipede","g":9,"t":[11,7],"b":585,"m":1,"base":593},{"n":"Mega Scrafty","g":9,"t":[15,6],"b":588,"m":1,"base":611},{"n":"Mega Eelektross","g":9,"t":[3],"b":615,"m":1,"base":658},{"n":"Mega Chandelure","g":9,"t":[13,1],"b":620,"m":1,"base":663},{"n":"Mega Golurk","g":9,"t":[8,13],"b":583,"m":1,"base":678},{"n":"Mega Chesnaught","g":9,"t":[4,6],"b":630,"m":1,"base":708},{"n":"Mega Delphox","g":9,"t":[1,10],"b":634,"m":1,"base":711},{"n":"Mega Greninja","g":9,"t":[2,15],"b":630,"m":1,"base":714},{"n":"Mega Pyroar","g":9,"t":[1,0],"b":607,"m":1,"base":724},{"n":"Mega Floette","g":9,"t":[17],"b":651,"m":1,"base":726},{"n":"Mega Malamar","g":9,"t":[15,10],"b":582,"m":1,"base":743},{"n":"Mega Barbaracle","g":9,"t":[12,6],"b":600,"m":1,"base":745},{"n":"Mega Dragalge","g":9,"t":[7,14],"b":594,"m":1,"base":747},{"n":"Mega Hawlucha","g":9,"t":[6,9],"b":600,"m":1,"base":757},{"n":"Mega Zygarde","g":9,"t":[14,8],"b":778,"m":1,"base":777},{"n":"Mega Diancie","g":6,"t":[12,17],"b":700,"m":1,"base":778},{"n":"Mega Crabominable","g":9,"t":[6,5],"b":578,"m":1,"base":800},{"n":"Mega Golisopod","g":9,"t":[11,16],"b":630,"m":1,"base":833},{"n":"Mega Drampa","g":9,"t":[0,14],"b":585,"m":1,"base":845},{"n":"Mega Magearna","g":9,"t":[16,17],"b":700,"m":1,"base":866},{"n":"Mega Zeraora","g":9,"t":[3],"b":700,"m":1,"base":872},{"n":"Mega Falinks","g":9,"t":[6],"b":570,"m":1,"base":935},{"n":"Mega Scovillain","g":9,"t":[4,1],"b":586,"m":1,"base":1017},{"n":"Mega Glimmora","g":9,"t":[12,7],"b":625,"m":1,"base":1035},{"n":"Mega Baxcalibur","g":9,"t":[14,5],"b":700,"m":1,"base":1063}]};
+const TYPES = DATA.types;
+const SP = DATA.sp;
+const TYPE_COLORS = ['#9fa19f', '#e62829', '#2980ef', '#fac000', '#3fa129', '#3dcef3', '#ff8000', '#9141cb', '#915121', '#81b9ef', '#ef4179', '#91a119', '#afa981', '#704170', '#5060e1', '#624d4e', '#60a1b8', '#ef70ef'];
+const DARK_TEXT = new Set([0, 3, 5, 9, 12]);
+const GAMES = [
+  ['1', 'Red / Blue / Yellow'], ['2', 'Gold / Silver / Crystal'], ['3', 'Ruby / Sapphire / Emerald / FireRed / LeafGreen'],
+  ['4', 'Diamond / Pearl / Platinum / HeartGold / SoulSilver'], ['5', 'Black / White / Black 2 / White 2'],
+  ['6', 'X / Y / Omega Ruby / Alpha Sapphire'], ['7', 'Sun / Moon / Ultra Sun / Ultra Moon'],
+  ['8', 'Sword / Shield / BDSP / Legends: Arceus'], ['9', 'Scarlet / Violet / Legends: Z-A'],
+];
+const STORE_KEY = 'soul-link-planner-v1';
+const DEFAULT_NAMES = ['Kartikey', 'Partner', 'Player 3'];
+const NODE_CAP = 300000;
+const RULES = ['cross', 'strict', 'none'];
+
+// ---------- Small helpers ----------
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const range = (n) => Array.from({ length: n }, (_, i) => i);
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    const v = attrs[k];
+    if (v === null || v === undefined || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style') el.setAttribute('style', v);
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'text') el.textContent = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+function joinNames(list) {
+  if (list.length <= 1) return list.join('');
+  if (list.length === 2) return list[0] + ' and ' + list[1];
+  return list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
+}
+function joinNodes(nodes, last = ' and ') {
+  const out = [];
+  nodes.forEach((n, i) => {
+    if (i > 0) out.push(i === nodes.length - 1 ? last : ', ');
+    out.push(n);
+  });
+  return out;
+}
+const nameKey = (s) => String(s).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '');
+const BY_NAME = new Map();
+SP.forEach((s, i) => BY_NAME.set(nameKey(s.n), i));
+function lookup(text) {
+  const k = nameKey(text || '');
+  if (!k) return null;
+  const i = BY_NAME.get(k);
+  return i === undefined ? -1 : i;
+}
+
+// ---------- Game data helpers ----------
+const chartOf = (gen) => DATA.charts[gen <= 1 ? 1 : gen <= 5 ? 2 : 6];
+const typeExists = (gen, t) => chartOf(gen)[t][t] !== null;
+const genTypeList = (gen) => range(18).filter((t) => typeExists(gen, t));
+function typesOf(i, gen) {
+  const s = SP[i];
+  let t = (s.to && s.to[gen]) || s.t;
+  t = t.filter((x) => typeExists(gen, x));
+  if (!t.length) t = s.m ? typesOf(s.base, gen) : [0];
+  return t;
+}
+const bstOf = (i, gen) => { const s = SP[i]; return (s.bo && s.bo[gen]) || s.b; };
+const isAvail = (i, gen) => { const s = SP[i]; return s.m ? SP[s.base].g <= gen : s.g <= gen; };
+const scaleBst = (b) => clamp((b - 200) / 400, 0, 1) * 100;
+function availDesc(i, gen) { return (SP[i].e || []).filter((d) => SP[d].g <= gen); }
+function chainEnd(i, gen) {
+  const ds = availDesc(i, gen);
+  if (!ds.length) return i;
+  const child = ds.find((d) => availDesc(d, gen).length === ds.length - 1);
+  if (child === undefined) return null;
+  return chainEnd(child, gen);
+}
+function autoPlan(c, gen) { const end = chainEnd(c, gen); return end === null ? c : end; }
+function planOptions(c, gen, megas) {
+  const opts = [{ i: c, label: 'Keep as ' + SP[c].n }];
+  const addMegas = (x) => { if (megas) for (const m of SP[x].mg || []) opts.push({ i: m, label: SP[m].n, mega: true }); };
+  addMegas(c);
+  for (const d of availDesc(c, gen)) { opts.push({ i: d, label: 'Evolve to ' + SP[d].n }); addMegas(d); }
+  return opts;
+}
+function effPlan(c, planText, gen, megas) {
+  const opts = planOptions(c, gen, megas);
+  const p = lookup(planText);
+  if (p !== null && p >= 0) {
+    if (opts.some((o) => o.i === p)) return p;
+    if (SP[p].m && opts.some((o) => o.i === SP[p].base)) return SP[p].base;
+  }
+  return c;
+}
+
+// ---------- State ----------
+let idCounter = 0;
+const newId = () => 'l' + Date.now().toString(36) + (idCounter++).toString(36);
+const emptyMon = () => ({ sp: '', plan: '' });
+const EXAMPLE = [
+  ['Littleroot (starter)', [['Treecko', 'Sceptile'], ['Mudkip', 'Swampert'], ['Torchic', 'Blaziken']]],
+  ['Route 101', [['Zigzagoon', 'Linoone'], ['Wurmple', 'Beautifly'], ['Poochyena', 'Mightyena']]],
+  ['Route 102', [['Ralts', 'Gardevoir'], ['Seedot', 'Shiftry'], ['Lotad', 'Ludicolo']]],
+  ['Route 104', [['Taillow', 'Swellow'], ['Wingull', 'Pelipper'], ['Surskit', 'Masquerain']]],
+  ['Petalburg Woods', [['Shroomish', 'Breloom'], ['Slakoth', 'Slaking'], ['Wurmple', 'Dustox']]],
+  ['Route 116', [['Whismur', 'Exploud'], ['Nincada', 'Ninjask'], ['Abra', 'Alakazam']]],
+  ['Granite Cave', [['Makuhita', 'Hariyama'], ['Aron', 'Aggron'], ['Sableye', 'Sableye']]],
+  ['Route 106', [['Tentacool', 'Tentacruel'], ['Geodude', 'Golem'], ['Magikarp', 'Gyarados']], true],
+  ['Route 117', [['Marill', 'Azumarill'], ['Roselia', 'Roselia'], ['Illumise', 'Illumise']]],
+  ['Route 110', [['Electrike', 'Manectric'], ['Shuppet', 'Banette'], ['Gulpin', 'Swalot']]],
+  ['Route 111 (desert)', [['Trapinch', 'Flygon'], ['Sandshrew', 'Sandslash'], ['Cacnea', 'Cacturne']]],
+  ['Route 112', [['Numel', 'Camerupt'], ['Machop', 'Machamp'], ['Marill', 'Azumarill']]],
+  ['Fiery Path', [['Torkoal', 'Torkoal'], ['Koffing', 'Weezing'], ['Machop', 'Machamp']]],
+  ['Route 113', [['Spinda', 'Spinda'], ['Skarmory', 'Skarmory'], ['Sandshrew', 'Sandslash']]],
+  ['Route 115', [['Meditite', 'Medicham'], ['Swablu', 'Altaria'], ['Jigglypuff', 'Wigglytuff']]],
+  ['Route 119', [['Feebas', 'Milotic'], ['Tropius', 'Tropius'], ['Kecleon', 'Kecleon']]],
+];
+function exampleState() {
+  return {
+    v: 2, example: true, n: 2, game: '3', players: DEFAULT_NAMES.slice(), rule: 'cross', megas: false,
+    favour: -1, favourAmt: 50, weight: 50,
+    links: EXAMPLE.map(([loc, mons, dead], i) => ({
+      id: 'ex' + i, loc, mons: mons.map(([sp, plan]) => ({ sp, plan })), dead: !!dead, lock: false,
+    })),
+  };
+}
+const str = (x, max) => (typeof x === 'string' ? x : '').slice(0, max);
+function sanitizeMon(m) {
+  m = m && typeof m === 'object' ? m : {};
+  let sp = str(m.sp, 40).trim();
+  let plan = str(m.plan, 40).trim();
+  const i = lookup(sp);
+  if (i !== null && i >= 0) {
+    if (SP[i].m) { plan = SP[i].n; sp = SP[SP[i].base].n; } else sp = SP[i].n;
+  }
+  const p = lookup(plan);
+  if (p !== null && p >= 0) plan = SP[p].n;
+  return { sp, plan };
+}
+function sanitize(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  let src = raw;
+  if (!Array.isArray(raw.links) && Array.isArray(raw.pairs)) {
+    // Migrate the v1 two-player shape.
+    const bias = clamp(Number(raw.bias) || 50, 0, 100);
+    const rounded = Math.round(bias);
+    src = {
+      example: false, n: 2, game: raw.game, players: [raw.p1, raw.p2, DEFAULT_NAMES[2]], rule: raw.rule, megas: raw.megas,
+      favour: rounded === 50 ? -1 : rounded < 50 ? 0 : 1,
+      favourAmt: Math.max(10, Math.abs(bias - 50) * 2),
+      weight: raw.weight,
+      links: raw.pairs.map((p) => p && typeof p === 'object' ? {
+        id: p.id, loc: p.loc, dead: p.dead, lock: p.lock, mons: [p.a, p.b, emptyMon()],
+      } : null),
+    };
+  } else if (!Array.isArray(raw.links)) {
+    return null;
+  }
+  const n = Number(src.n) === 3 ? 3 : 2;
+  const game = String(clamp(Math.round(Number(src.game)) || 3, 1, 9));
+  const names = Array.isArray(src.players) ? src.players : [];
+  const players = range(3).map((i) => { const s = str(names[i], 24).trim(); return s || DEFAULT_NAMES[i]; });
+  const rule = RULES.includes(src.rule) ? src.rule : 'cross';
+  let favour = Math.round(Number(src.favour));
+  if (!(favour >= 0 && favour < 3)) favour = -1;
+  if (favour >= n) favour = -1;
+  const favourAmt = clamp(Math.round((Number(src.favourAmt) || 50) / 10) * 10, 10, 100);
+  const w = Number(src.weight);
+  const weight = clamp(Math.round((Number.isFinite(w) ? w : 50) / 5) * 5, 0, 100);
+  const seen = new Set();
+  const links = src.links.filter((l) => l && typeof l === 'object').slice(0, 200).map((l) => {
+    let id = str(l.id, 40);
+    if (!id || seen.has(id)) id = newId();
+    seen.add(id);
+    const mons = range(3).map((i) => sanitizeMon(Array.isArray(l.mons) ? l.mons[i] : null));
+    const dead = !!l.dead;
+    return { id, loc: str(l.loc, 40), mons, dead, lock: !!l.lock && !dead };
+  });
+  return { v: 2, example: !!src.example, n, game, players, rule, megas: !!src.megas, favour, favourAmt, weight, links };
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) { const s = sanitize(JSON.parse(raw)); if (s) return s; }
+  } catch (e) { /* storage unavailable */ }
+  return exampleState();
+}
+let state = loadState();
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } }
+
+// ---------- Link analysis ----------
+const pcVar = (i) => 'var(--p' + (i + 1) + ')';
+const gen = () => Number(state.game);
+function monInfo(mon, g, megas) {
+  const c = lookup(mon.sp);
+  if (c === null) return { empty: true };
+  if (c < 0) return { unknown: true };
+  if (!isAvail(c, g)) return { c, notgame: true };
+  const p = effPlan(c, mon.plan, g, megas);
+  const mega = !!SP[p].m;
+  const types = typesOf(p, g);
+  const bst = bstOf(p, g);
+  const baseBst = mega ? bstOf(SP[p].base, g) : bst;
+  return { c, p, mega, types, prim: types[0], bst, baseBst, name: SP[p].n };
+}
+function analyseLink(link, st) {
+  const g = Number(st.game);
+  const N = st.n;
+  const mons = range(N).map((i) => monInfo(link.mons[i], g, st.megas));
+  let status = 'ok', msg = 'Usable link';
+  const missing = range(N).filter((i) => mons[i].empty).map((i) => st.players[i]);
+  if (missing.length) { status = 'incomplete'; msg = incompleteMsg(missing); }
+  else if (mons.some((m) => m.unknown)) { status = 'unknown'; msg = 'Pokémon name not recognised'; }
+  else if (mons.some((m) => m.notgame)) { status = 'notgame'; msg = 'Not available in this generation'; }
+  else if (link.dead) { status = 'dead'; msg = 'Dead'; }
+  else if (st.rule !== 'none') {
+    outer: for (let a = 0; a < N; a++) for (let b = a + 1; b < N; b++) {
+      if (mons[a].prim === mons[b].prim) {
+        status = 'clash';
+        msg = mons[a].name + ' and ' + mons[b].name + ' are both primary ' + TYPES[mons[a].prim] + ', so this link can never be used';
+        break outer;
+      }
+    }
+  }
+  return { link, mons, status, msg };
+}
+function incompleteMsg(names) {
+  return 'Still needs ' + joinNames(names.map((n) => n + "'s")) + ' Pokémon';
+}
+
+// ---------- Scoring ----------
+function playerWeights(st) {
+  const N = st.n;
+  if (st.favour < 0 || st.favour >= N) return range(N).map(() => 1 / N);
+  const top = 1 / N + (st.favourAmt / 100) * (1 - 1 / N);
+  return range(N).map((i) => (i === st.favour ? top : (1 - top) / (N - 1)));
+}
+function sideEval(members, g, wt) {
+  let sum = 0, boost = 0, megaCount = 0;
+  for (const m of members) {
+    if (m.mega) { megaCount++; sum += scaleBst(m.baseBst); boost = Math.max(boost, scaleBst(m.bst) - scaleBst(m.baseBst)); }
+    else sum += scaleBst(m.bst);
+  }
+  const power = members.length ? (sum + boost) / members.length : 0;
+  const chart = chartOf(g);
+  const types = genTypeList(g);
+  const uncovered = [];
+  let covered = 0;
+  for (const d of types) {
+    if (members.some((m) => m.types.some((a) => chart[a][d] === 2))) covered++;
+    else uncovered.push(d);
+  }
+  const cov = covered / types.length;
+  let pen = 0;
+  const weak = [];
+  for (const a of types) {
+    let w = 0, r = 0;
+    for (const m of members) {
+      const mult = m.types.reduce((x, d) => x * chart[a][d], 1);
+      if (mult > 1) w++; else if (mult < 1) r++;
+    }
+    if (w >= 3 && r === 0) { pen += 1; weak.push({ t: a, w, r, sev: 'bad' }); }
+    else if (w >= 2 && r === 0) { pen += 0.35; weak.push({ t: a, w, r, sev: 'warn' }); }
+    else if (w >= 3) { pen += 0.2; weak.push({ t: a, w, r, sev: 'warn' }); }
+  }
+  const def = Math.max(0, 1 - pen / 3);
+  const synergy = 100 * (0.5 * cov + 0.5 * def);
+  const score = (1 - wt) * power + wt * synergy;
+  return { power, synergy, score, cov, uncovered, weak, megaCount };
+}
+
+// ---------- Optimiser ----------
+function optimise(st) {
+  const g = Number(st.game);
+  const N = st.n;
+  const wt = st.weight / 100;
+  const weights = playerWeights(st);
+  const infos = st.links.map((l) => analyseLink(l, st));
+  const ok = infos.filter((x) => x.status === 'ok');
+  for (const x of ok) x.pw = range(N).reduce((s, i) => s + weights[i] * scaleBst(x.mons[i].bst), 0);
+
+  const used = range(N).map(() => new Map());
+  const canAdd = (x) => {
+    if (st.rule === 'none') return true;
+    for (let i = 0; i < N; i++) {
+      const t = x.mons[i].prim;
+      for (let j = 0; j < N; j++) {
+        if (st.rule === 'cross' && j === i) continue;
+        if (used[j].get(t)) return false;
+      }
+    }
+    return true;
+  };
+  const add = (x, d) => { for (let i = 0; i < N; i++) { const t = x.mons[i].prim; used[i].set(t, (used[i].get(t) || 0) + d); } };
+
+  const pinned = [], conflicts = [];
+  for (const x of ok) {
+    if (!x.link.lock) continue;
+    if (pinned.length < 6 && canAdd(x)) { pinned.push(x); add(x, 1); }
+    else conflicts.push(x);
+  }
+  const conflictSet = new Set(conflicts);
+  const cands = ok.filter((x) => !x.link.lock).map((x, i) => ({ x, i }))
+    .sort((a, b) => (b.x.pw - a.x.pw) || (a.i - b.i)).map((o) => o.x);
+  const P = pinned.length;
+  const pinnedSum = pinned.reduce((s, x) => s + x.pw, 0);
+
+  let top = [];
+  let nodes = 0, quick = false, K = 0;
+  const evaluate = (chosen) => {
+    const team = pinned.concat(chosen);
+    const sides = range(N).map((i) => sideEval(team.map((x) => x.mons[i]), g, wt));
+    let score = 0, raw = 0, bal = 0;
+    sides.forEach((s, i) => { score += weights[i] * s.score; raw += weights[i] * s.power; bal += weights[i] * s.synergy; });
+    if (top.length === 5 && score <= top[4].score) return;
+    top.push({ team, sides, score, raw, bal });
+    top.sort((a, b) => b.score - a.score);
+    if (top.length > 5) top.length = 5;
+  };
+  const Kmax = Math.min(6, P + cands.length);
+  for (K = Kmax; K >= P && K > 0; K--) {
+    const need = K - P;
+    const chosen = [];
+    const dfs = (start, sum) => {
+      if (quick) return;
+      if (++nodes > NODE_CAP) { quick = true; return; }
+      const r = need - chosen.length;
+      if (r === 0) { evaluate(chosen.slice()); return; }
+      if (cands.length - start < r) return;
+      if (top.length === 5) {
+        let ub = sum;
+        for (let k = start; k < start + r; k++) ub += cands[k].pw;
+        if ((1 - wt) * ub / K + wt * 100 <= top[4].score) return;
+      }
+      for (let i = start; i <= cands.length - r; i++) {
+        const c = cands[i];
+        if (!canAdd(c)) continue;
+        add(c, 1); chosen.push(c);
+        dfs(i + 1, sum + c.pw);
+        chosen.pop(); add(c, -1);
+        if (quick) return;
+      }
+    };
+    dfs(0, pinnedSum);
+    if (top.length) break;
+  }
+  if (!top.length) K = 0;
+  return { infos, ok, top, K, quick, conflicts, conflictSet, weights, N, g };
+}
+
+// ---------- Rendering: settings ----------
+function typeChip(t) { return h('span', { class: 'chip' + (DARK_TEXT.has(t) ? ' dk' : ''), style: 'background:' + TYPE_COLORS[t] }, TYPES[t]); }
+function setPressed(btn, on) { btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+function renderSettings() {
+  const sel = $('game');
+  if (!sel.options.length) for (const [g, label] of GAMES) sel.append(h('option', { value: g }, 'Gen ' + g + ' · ' + label));
+  sel.value = state.game;
+  setPressed($('players-2'), state.n === 2); setPressed($('players-3'), state.n === 3);
+  for (const r of RULES) setPressed($('rule-' + r), state.rule === r);
+  $('ruleHint').textContent = state.rule === 'cross'
+    ? 'A primary type used by one player is off-limits to the others. Repeats on your own team are fine.'
+    : state.rule === 'strict' ? 'All ' + (6 * state.n) + ' Pokémon need different primary types, even within one team.'
+      : 'No type clause. Any link can be used, as long as everyone is alive.';
+  setPressed($('megas-off'), !state.megas); setPressed($('megas-on'), state.megas);
+  renderNameInputs();
+  renderFavour();
+  $('weight').value = state.weight;
+  $('weightOut').textContent = (100 - state.weight) + ' / ' + state.weight;
+}
+function renderNameInputs() {
+  const box = $('nameInputs');
+  for (let i = 0; i < 3; i++) {
+    let row = $('nameRow' + i);
+    if (!row) {
+      row = h('div', { class: 'name-row', id: 'nameRow' + i, style: '--pc:' + pcVar(i) },
+        h('label', { class: 'sr-only', for: 'name' + i }, 'Player ' + (i + 1) + ' name'),
+        h('input', { type: 'text', id: 'name' + i, maxlength: '24', autocomplete: 'off', 'aria-label': null }));
+      box.append(row);
+      const input = row.querySelector('input');
+      input.value = state.players[i];
+      input.addEventListener('input', () => {
+        state.players[i] = input.value.slice(0, 24);
+        onNamesChanged();
+      });
+      input.addEventListener('change', () => {
+        if (!input.value.trim()) { state.players[i] = DEFAULT_NAMES[i]; input.value = DEFAULT_NAMES[i]; }
+        else { state.players[i] = input.value.trim().slice(0, 24); input.value = state.players[i]; }
+        onNamesChanged();
+      });
+    }
+    row.hidden = i >= state.n;
+    const input = row.querySelector('input');
+    if (document.activeElement !== input) input.value = state.players[i];
+    row.querySelector('label').textContent = 'Player ' + (i + 1) + ' name';
+  }
+}
+const pname = (i) => (state.players[i] || '').trim() || DEFAULT_NAMES[i];
+function renderFavour() {
+  const seg = $('favourSeg');
+  const focusedId = document.activeElement && seg.contains(document.activeElement) ? document.activeElement.id : null;
+  seg.replaceChildren(
+    h('button', { type: 'button', id: 'favour-even', 'aria-pressed': state.favour < 0 ? 'true' : 'false', onclick: () => setFavour(-1) }, 'Even'),
+    ...range(state.n).map((i) => h('button', { type: 'button', id: 'favour-' + i, 'aria-pressed': state.favour === i ? 'true' : 'false', onclick: () => setFavour(i) }, pname(i))));
+  if (focusedId && $(focusedId)) $(focusedId).focus();
+  const wrap = $('favourAmtWrap');
+  wrap.hidden = state.favour < 0;
+  $('favourAmt').value = state.favourAmt;
+  if (state.favour >= 0) {
+    const top = playerWeights(state)[state.favour];
+    $('favourOut').textContent = Math.round(top * 100) + '% weight on ' + pname(state.favour);
+  }
+}
+function setFavour(i) { state.favour = i; renderFavour(); changed(); }
+function onNamesChanged() {
+  renderFavour();
+  for (const card of $('encList').children) updateCard(card);
+  changed();
+}
+
+// ---------- Rendering: encounter editor ----------
+let datalistKey = '';
+function renderDatalist() {
+  const key = state.game + '|' + state.megas;
+  if (key === datalistKey) return;
+  datalistKey = key;
+  const g = gen();
+  const frag = document.createDocumentFragment();
+  SP.forEach((s, i) => {
+    if (s.m && !state.megas) return;
+    if (!isAvail(i, g)) return;
+    frag.append(h('option', { value: s.n }));
+  });
+  $('speciesList').replaceChildren(frag);
+}
+const linkById = (id) => state.links.find((l) => l.id === id);
+function buildCard(link) {
+  const id = link.id;
+  const cols = h('div', { class: 'cols' });
+  for (let i = 0; i < 3; i++) {
+    cols.append(h('div', { class: 'col', 'data-p': i, style: '--pc:' + pcVar(i) },
+      h('label', { class: 'plabel', for: 'sp-' + id + '-' + i }),
+      h('input', { type: 'text', id: 'sp-' + id + '-' + i, list: 'speciesList', autocomplete: 'off', spellcheck: 'false', maxlength: '40', 'data-act': 'sp', 'data-p': i, placeholder: 'Pokémon' }),
+      h('label', { class: 'sr-only', for: 'plan-' + id + '-' + i }),
+      h('select', { id: 'plan-' + id + '-' + i, 'data-act': 'plan', 'data-p': i }),
+      h('div', { class: 'info', 'aria-live': 'polite' })));
+  }
+  const card = h('article', { class: 'enc', 'data-id': id },
+    h('div', { class: 'enc-top' },
+      h('div', { class: 'enc-loc' },
+        h('label', { class: 'flabel', for: 'loc-' + id }, 'Route or area'),
+        h('input', { type: 'text', id: 'loc-' + id, maxlength: '40', autocomplete: 'off', 'data-act': 'loc', placeholder: 'Route or area' })),
+      h('div', { class: 'enc-actions' },
+        h('button', { type: 'button', class: 'btn small tog-dead', id: 'dead-' + id, 'data-act': 'dead' }),
+        h('button', { type: 'button', class: 'btn small tog-pin', id: 'pin-' + id, 'data-act': 'pin' }),
+        h('button', { type: 'button', class: 'btn small danger-outline', id: 'rm-' + id, 'data-act': 'rm' }, 'Remove'))),
+    cols,
+    h('p', { class: 'status' }));
+  card.querySelector('[data-act=loc]').value = link.loc;
+  for (let i = 0; i < 3; i++) card.querySelector('#sp-' + CSS.escape(id) + '-' + i).value = link.mons[i].sp;
+  updateCard(card);
+  return card;
+}
+function updateCard(card) {
+  const link = linkById(card.dataset.id);
+  if (!link) return;
+  const g = gen();
+  const N = state.n;
+  const info = analyseLink(link, state);
+  card.classList.toggle('is-clash', info.status === 'clash');
+  card.classList.toggle('is-dead', link.dead);
+  const dead = card.querySelector('[data-act=dead]');
+  dead.textContent = link.dead ? 'Dead' : 'Alive'; setPressed(dead, link.dead);
+  const pin = card.querySelector('[data-act=pin]');
+  pin.textContent = link.lock ? 'Pinned' : 'Pin'; setPressed(pin, link.lock);
+  const cols = card.querySelector('.cols');
+  cols.className = 'cols n' + N; cols.style.setProperty('--n', N);
+  cols.querySelectorAll('.col').forEach((col) => {
+    const i = Number(col.dataset.p);
+    col.hidden = i >= N;
+    if (i >= N) return;
+    const mon = link.mons[i];
+    col.querySelector('.plabel').textContent = pname(i);
+    const sel = col.querySelector('select');
+    sel.previousElementSibling.textContent = 'Planned form for ' + pname(i);
+    const c = lookup(mon.sp);
+    const box = col.querySelector('.info');
+    box.replaceChildren();
+    if (c === null) { sel.hidden = true; sel.replaceChildren(); return; }
+    if (c < 0) { sel.hidden = true; sel.replaceChildren(); box.append(h('span', { class: 'err' }, 'Not found. Check the spelling.')); return; }
+    if (!isAvail(c, g)) { sel.hidden = true; sel.replaceChildren(); box.append(h('span', { class: 'err' }, 'Not in Gen ' + g + ' games')); return; }
+    const opts = planOptions(c, g, state.megas);
+    const p = effPlan(c, mon.plan, g, state.megas);
+    const sig = opts.map((o) => o.i).join(',');
+    if (sel.dataset.sig !== sig) {
+      sel.replaceChildren(...opts.map((o) => h('option', { value: o.i }, o.label)));
+      sel.dataset.sig = sig;
+    }
+    sel.value = String(p);
+    sel.hidden = opts.length <= 1;
+    box.append(h('span', { class: 'chips' }, typesOf(p, g).map(typeChip)), h('span', { class: 'bst' }, 'BST ' + bstOf(p, g)));
+    if (SP[p].m) box.append(h('span', { class: 'flag gold' }, 'Mega'));
+  });
+  const st = card.querySelector('.status');
+  st.textContent = info.msg;
+  st.className = 'status ' + (info.status === 'ok' ? 'ok' : info.status === 'clash' || info.status === 'dead' ? 'bad' : 'no');
+}
+function renderEditor() {
+  renderDatalist();
+  const list = $('encList');
+  const existing = new Map([...list.children].map((c) => [c.dataset.id, c]));
+  const frag = [];
+  for (const link of state.links) {
+    let card = existing.get(link.id);
+    if (card) { existing.delete(link.id); updateCard(card); } else card = buildCard(link);
+    frag.push(card);
+  }
+  for (const c of existing.values()) c.remove();
+  frag.forEach((c, i) => { if (list.children[i] !== c) list.insertBefore(c, list.children[i] || null); });
+}
+function refreshCards() { for (const card of $('encList').children) updateCard(card); }
+function addEncounter() {
+  const link = { id: newId(), loc: '', mons: range(3).map(emptyMon), dead: false, lock: false };
+  state.links.push(link);
+  renderEditor();
+  changed();
+  const loc = $('loc-' + link.id);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  loc.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+  loc.focus({ preventScroll: true });
+}
+const confirmTimers = new WeakMap();
+function twoTap(btn, label, ms, normal, action) {
+  if (btn.dataset.confirming === '1') {
+    clearTimeout(confirmTimers.get(btn));
+    btn.dataset.confirming = ''; btn.classList.remove('confirming'); btn.textContent = normal;
+    action();
+    return;
+  }
+  btn.dataset.confirming = '1'; btn.classList.add('confirming'); btn.textContent = label;
+  confirmTimers.set(btn, setTimeout(() => {
+    btn.dataset.confirming = ''; btn.classList.remove('confirming'); btn.textContent = normal;
+  }, ms));
+}
+function onEditorInput(e) {
+  const el = e.target;
+  const card = el.closest('.enc');
+  if (!card) return;
+  const link = linkById(card.dataset.id);
+  if (!link) return;
+  const act = el.dataset.act;
+  if (act === 'loc') { link.loc = el.value.slice(0, 40); changed(); return; }
+  if (act === 'sp') {
+    const i = Number(el.dataset.p);
+    const mon = link.mons[i];
+    const before = lookup(mon.sp);
+    const idx = lookup(el.value);
+    mon.sp = el.value.slice(0, 40);
+    if (idx !== null && idx >= 0) {
+      if (SP[idx].m) {
+        mon.sp = SP[SP[idx].base].n;
+        mon.plan = SP[idx].n;
+        el.value = mon.sp;
+        if (!state.megas) { state.megas = true; renderSettings(); renderDatalist(); refreshCards(); }
+      } else if (idx !== before) {
+        mon.plan = SP[autoPlan(idx, gen())].n;
+      }
+    }
+    updateCard(card);
+    changed();
+    return;
+  }
+  if (act === 'plan' && e.type === 'change') {
+    const i = Number(el.dataset.p);
+    link.mons[i].plan = SP[Number(el.value)].n;
+    updateCard(card);
+    changed();
+  }
+}
+function onEditorChange(e) {
+  const el = e.target;
+  if (el.dataset.act === 'sp') {
+    const card = el.closest('.enc');
+    const link = linkById(card.dataset.id);
+    const mon = link.mons[Number(el.dataset.p)];
+    const idx = lookup(el.value);
+    if (idx !== null && idx >= 0 && !SP[idx].m) { el.value = SP[idx].n; mon.sp = SP[idx].n; }
+    else if (idx === null) { el.value = ''; mon.sp = ''; }
+    updateCard(card);
+    changed();
+  } else if (el.dataset.act === 'loc') {
+    const link = linkById(el.closest('.enc').dataset.id);
+    link.loc = el.value.trim().slice(0, 40);
+    changed();
+  } else onEditorInput(e);
+}
+function onEditorClick(e) {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const card = btn.closest('.enc');
+  const link = linkById(card.dataset.id);
+  if (!link) return;
+  const act = btn.dataset.act;
+  if (act === 'dead') { link.dead = !link.dead; if (link.dead) link.lock = false; updateCard(card); changed(); }
+  else if (act === 'pin') { link.lock = !link.lock; if (link.lock) link.dead = false; updateCard(card); changed(); }
+  else if (act === 'rm') {
+    twoTap(btn, 'Tap to confirm', 3500, 'Remove', () => {
+      state.links = state.links.filter((l) => l !== link);
+      renderEditor(); changed();
+    });
+  }
+}
+
+// ---------- Rendering: results ----------
+let selectedTeam = 0;
+let lastResult = null;
+function renderHero(res) {
+  const N = state.n;
+  const svg = $('cable');
+  const ns = 'http://www.w3.org/2000/svg';
+  const path = document.createElementNS(ns, 'path');
+  let d = 'M 12 17';
+  for (let x = 12; x < 588; x += 48) d += ' q 12 -11 24 0 t 24 0';
+  path.setAttribute('d', d);
+  const xs = N === 3 ? [12, 300, 588] : [12, 588];
+  const cols = N === 3 ? [0, 1, 2] : [0, 1];
+  svg.replaceChildren(path, ...xs.map((x, k) => {
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', 17); c.setAttribute('r', 9);
+    c.setAttribute('style', 'fill:' + pcVar(cols[k]));
+    return c;
+  }));
+  const names = range(N).map((i) => h('strong', { class: 'c' + (i + 1) }, pname(i)));
+  const k = res.top.length ? res.top[0].team.length : 0;
+  const phrase = state.rule === 'cross' ? 'with no primary type shared between teams'
+    : state.rule === 'strict' ? 'with every primary type different across all teams' : 'with no type clause';
+  $('lede').replaceChildren(...joinNodes(names), ' can field ',
+    h('strong', null, k + ' linked encounter' + (k === 1 ? '' : 's')),
+    ' from ' + res.ok.length + ' usable, ' + phrase + '.');
+  $('exampleNote').hidden = !state.example;
+}
+function monCard(m, i) {
+  const caught = SP[m.c].n;
+  return h('div', { class: 'mon', style: '--pc:' + pcVar(i) },
+    h('span', { class: 'mn' }, m.name),
+    m.p !== m.c ? h('span', { class: 'from' }, 'from ' + caught) : null,
+    h('span', { class: 'chips' }, m.types.map(typeChip), m.mega ? h('span', { class: 'flag gold' }, 'Mega') : null),
+    h('span', { class: 'bst' }, 'BST ' + m.bst));
+}
+function note(flag, cls, text) { return h('div', { class: 'note' }, h('span', { class: 'flag ' + cls }, flag), h('p', null, text)); }
+function renderBest(res) {
+  const N = state.n;
+  $('bestTitle').textContent = state.rule === 'none' ? 'Best team' : 'Best legal team';
+  if (selectedTeam >= res.top.length) selectedTeam = 0;
+  const team = res.top[selectedTeam];
+  $('tabs').replaceChildren(...res.top.map((t, i) => h('button', {
+    type: 'button', class: 'tab', id: 'team-tab-' + i, 'aria-pressed': i === selectedTeam ? 'true' : 'false',
+    onclick: () => { selectedTeam = i; renderResults(lastResult); $('team-tab-' + i).focus(); },
+  }, (i === 0 ? 'Best' : 'Option ' + (i + 1)) + ' · ' + Math.round(t.score))));
+  $('tabs').hidden = res.top.length < 2;
+  if (!team) {
+    $('tiles').replaceChildren();
+    $('notes').replaceChildren(...conflictNotes(res));
+    $('teamRows').replaceChildren(h('p', { class: 'empty' }, 'No usable links yet. Give every player a Pokémon in an encounter that is alive and fits the type rule.'));
+    return;
+  }
+  const tile = (label, val, cls, style) => h('div', { class: 'tile ' + (cls || ''), style }, h('span', { class: 'tl' }, label), h('span', { class: 'tv' }, String(Math.round(val))));
+  $('tiles').replaceChildren(
+    tile('Team score', team.score, 'dark'), tile('Raw stats', team.raw), tile('Type balance', team.bal),
+    ...range(N).map((i) => tile(pname(i) + "'s team", team.sides[i].score, 'side', '--pc:' + pcVar(i))));
+  const notes = conflictNotes(res);
+  if (res.quick) notes.push(note('Quick search', 'warn', 'There are a lot of possible teams, so the search stopped early. These picks are very good but may not be the very best.'));
+  if (team.team.length < 6) notes.push(note(team.team.length + ' of 6', 'warn', 'Only ' + team.team.length + ' link' + (team.team.length === 1 ? '' : 's') + ' fit together under the current rule, so the team has empty slots.'));
+  range(N).forEach((i) => {
+    const c = team.sides[i].megaCount;
+    if (c > 1) notes.push(note(c + ' Megas', 'gold', pname(i) + ' has ' + c + ' Megas planned. Only one can Mega Evolve per battle, so the score counts just the strongest one.'));
+  });
+  $('notes').replaceChildren(...notes);
+  const inTeam = new Set(team.team);
+  const rows = res.infos.filter((x) => inTeam.has(x));
+  const wrap = h('div', { class: 'rows n' + N },
+    h('div', { class: 'rowhead', 'aria-hidden': 'true' }, ...range(N).flatMap((i) => [i > 0 ? h('span') : null, h('span', { class: 'c' + (i + 1) }, pname(i))])));
+  for (const x of rows) {
+    const bsts = x.mons.map((m) => m.bst);
+    const lop = Math.max(...bsts) - Math.min(...bsts) >= 150;
+    const pin = h('button', { type: 'button', class: 'pill', id: 'team-pin-' + x.link.id, 'aria-pressed': x.link.lock ? 'true' : 'false',
+      onclick: () => togglePin(x.link.id, 'team-pin-' + x.link.id) }, x.link.lock ? 'Pinned' : 'Pin');
+    wrap.append(h('div', { class: 'trow' },
+      h('div', { class: 'trow-meta' }, h('span', null, x.link.loc || 'No location'), pin, lop ? h('span', { class: 'flag warn' }, 'Lopsided link') : null),
+      h('div', { class: 'mons' }, ...x.mons.flatMap((m, i) => [i > 0 ? h('div', { class: 'knot', 'aria-hidden': 'true' }, h('i')) : null, monCard(m, i)]))));
+  }
+  $('teamRows').replaceChildren(wrap);
+}
+function conflictNotes(res) {
+  return res.conflicts.map((x) => note('Pinned link skipped', 'bad',
+    (x.link.loc || 'An unnamed encounter') + ' is pinned but cannot join the team: ' + blockReason(x, res.top[selectedTeam] || { team: [] }, res) + '.'));
+}
+function blockReason(x, team, res) {
+  const N = state.n;
+  const parts = [];
+  for (let i = 0; i < N; i++) {
+    const m = x.mons[i];
+    for (const y of team.team) {
+      if (y === x) continue;
+      for (let j = 0; j < N; j++) {
+        if (y.mons[j].prim !== m.prim) continue;
+        if (state.rule === 'cross' && j !== i) parts.push(m.name + ' (' + TYPES[m.prim] + ') clashes with ' + pname(j) + "'s " + y.mons[j].name);
+        if (state.rule === 'strict') parts.push(m.name + ' (' + TYPES[m.prim] + ') repeats ' + y.mons[j].name);
+      }
+    }
+  }
+  if (!parts.length && res.conflictSet.has(x)) return 'six links are already pinned';
+  return parts.join('; ');
+}
+function togglePin(id, focusId) {
+  const link = linkById(id);
+  if (!link) return;
+  link.lock = !link.lock;
+  if (link.lock) link.dead = false;
+  refreshCards();
+  changed(true);
+  if (focusId && $(focusId)) $(focusId).focus();
+}
+function renderBoard(res) {
+  const N = state.n;
+  const g = gen();
+  const team = res.top[selectedTeam];
+  const byType = new Map();
+  if (team) for (const x of team.team) x.mons.forEach((m, i) => {
+    if (!byType.has(m.prim)) byType.set(m.prim, []);
+    byType.get(m.prim).push({ i, name: m.name });
+  });
+  const types = genTypeList(g);
+  $('legend').replaceChildren(...range(N).map((i) => h('span', { style: '--pc:' + pcVar(i) }, h('i'), pname(i))));
+  $('board').replaceChildren(...types.map((t) => {
+    const users = byType.get(t) || [];
+    const players = new Set(users.map((u) => u.i));
+    return h('div', { class: 'cell' + (players.size > 1 ? ' shared' : '') },
+      h('span', { class: 'ct' }, h('span', { class: 'dot', style: 'background:' + TYPE_COLORS[t] }), TYPES[t]),
+      users.length ? h('span', { class: 'cu' }, ...joinNodes(users.map((u) => h('span', { class: 'c' + (u.i + 1) }, u.name)), ', '))
+        : h('span', { class: 'free' }, 'Free'));
+  }));
+  const noteBox = $('boardNote');
+  const list = (ts) => ts.length ? ts.map((t) => TYPES[t]).join(', ') : 'none';
+  if (state.rule === 'cross') {
+    const lines = range(N).map((i) => {
+      const blocked = types.filter((t) => (byType.get(t) || []).some((u) => u.i !== i));
+      return h('p', null, h('strong', { class: 'c' + (i + 1) }, pname(i)), blocked.length
+        ? ' can add any primary type except ' + list(blocked) + '.' : ' can add any primary type.');
+    });
+    const free = types.filter((t) => !byType.has(t));
+    lines.push(h('p', null, 'Untouched by everyone: ' + list(free) + '.'));
+    noteBox.replaceChildren(...lines);
+  } else if (state.rule === 'strict') {
+    const free = types.filter((t) => !byType.has(t));
+    noteBox.replaceChildren(h('p', null, 'Still open for new links: ' + list(free) + '. A new link fits this team only if all of its primary types are in that list and different from each other.'));
+  } else {
+    noteBox.replaceChildren(h('p', null, 'The type clause is off, so any link fits. The board just shows who is using which primary type.'));
+  }
+}
+function renderChecks(res) {
+  const N = state.n;
+  const team = res.top[selectedTeam];
+  if (!team) { $('checks').replaceChildren(h('p', { class: 'empty' }, 'Team checks appear once a team can be built.')); return; }
+  $('checks').replaceChildren(...range(N).map((i) => {
+    const s = team.sides[i];
+    const pct = Math.round(s.cov * 100);
+    return h('div', { class: 'check', style: '--pc:' + pcVar(i) },
+      h('h3', null, pname(i) + "'s team"),
+      h('span', { class: 'sub' }, 'Shared weak spots'),
+      s.weak.length ? h('div', { class: 'weak' }, s.weak.map((wk) => h('span', null, typeChip(wk.t),
+        h('span', { class: wk.sev === 'bad' ? 'bad' : '' }, wk.w + ' weak' + (wk.r ? ', ' + wk.r + ' resist' : '')))))
+        : h('div', null, h('span', { class: 'flag good' }, 'No stacked weaknesses')),
+      h('span', { class: 'sub' }, "Can't hit super effectively with STAB (" + pct + '% covered)'),
+      s.uncovered.length ? h('div', { class: 'chips' }, s.uncovered.map(typeChip)) : h('div', { class: 'hint' }, 'Hits every type'));
+  }));
+}
+function renderBench(res) {
+  const N = state.n;
+  const team = res.top[selectedTeam] || { team: [] };
+  const inTeam = new Set(team.team);
+  const items = res.infos.filter((x) => !inTeam.has(x)).map((x) => {
+    const names = range(N).map((i) => {
+      const m = x.mons[i];
+      const label = m.name || (x.link.mons[i].sp || '?');
+      return h('span', { class: 'c' + (i + 1) }, label);
+    });
+    let reason, bad = false;
+    if (x.status !== 'ok') { reason = x.msg; bad = x.status === 'clash' || x.status === 'dead'; }
+    else {
+      const b = blockReason(x, team, res);
+      if (b) reason = 'Blocked: ' + b;
+      else reason = (state.rule === 'none' ? 'Usable' : 'Fits the rule') + ', but scores lower than the current picks';
+    }
+    return h('li', null,
+      h('span', { class: 'bl' }, h('strong', null, x.link.loc || 'No location'), ' · ', ...joinNodes(names, ' + ').map((n) => n === ', ' ? ' + ' : n)),
+      h('span', { class: 'br' + (bad ? ' bad' : '') }, reason));
+  });
+  $('bench').replaceChildren(...(items.length ? items : [h('li', { class: 'empty' }, 'Every usable link is on the team.')]));
+}
+function renderResults(res) {
+  renderHero(res);
+  renderBest(res);
+  renderBoard(res);
+  renderChecks(res);
+  renderBench(res);
+}
+let timer = null;
+function recompute() {
+  timer = null;
+  lastResult = optimise(state);
+  renderResults(lastResult);
+}
+function changed(now) {
+  save();
+  if (timer) clearTimeout(timer);
+  if (now) recompute(); else timer = setTimeout(recompute, 120);
+}
+
+// ---------- Save and share ----------
+function setStatus(msg) { $('saveStatus').textContent = msg; }
+async function copyData() {
+  const ta = $('runData');
+  ta.value = JSON.stringify(state);
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('no clipboard');
+    await navigator.clipboard.writeText(ta.value);
+    setStatus('Run data copied to the clipboard. It is also in the box below.');
+  } catch (e) {
+    ta.focus(); ta.select();
+    setStatus('The clipboard is blocked here, so the run data is selected in the box. Copy it with your keyboard or menu.');
+  }
+}
+function loadData() {
+  const text = $('runData').value.trim();
+  if (!text) { setStatus('Paste run data into the box first.'); return; }
+  let parsed;
+  try { parsed = JSON.parse(text); } catch (e) { setStatus('That is not valid run data. Check that you pasted all of it.'); return; }
+  const s = sanitize(parsed);
+  if (!s) { setStatus('That text does not look like Soul Link Planner run data.'); return; }
+  state = s;
+  state.example = false;
+  selectedTeam = 0;
+  renderAll();
+  changed(true);
+  setStatus('Loaded ' + state.links.length + ' encounter' + (state.links.length === 1 ? '' : 's') + '.');
+}
+function blankRun() {
+  state.links = [{ id: newId(), loc: 'Starter', mons: range(3).map(emptyMon), dead: false, lock: false }];
+  state.example = false;
+  selectedTeam = 0;
+  renderEditor();
+  changed(true);
+}
+
+// ---------- Wiring ----------
+function renderAll() { renderSettings(); renderEditor(); }
+$('game').addEventListener('change', (e) => { state.game = e.target.value; renderEditor(); refreshCards(); changed(); });
+for (const n of [2, 3]) $('players-' + n).addEventListener('click', () => {
+  state.n = n; if (state.favour >= n) state.favour = -1;
+  renderSettings(); refreshCards(); changed();
+});
+for (const r of RULES) $('rule-' + r).addEventListener('click', () => { state.rule = r; renderSettings(); refreshCards(); changed(); });
+$('megas-off').addEventListener('click', () => { state.megas = false; renderSettings(); renderDatalist(); refreshCards(); changed(); });
+$('megas-on').addEventListener('click', () => { state.megas = true; renderSettings(); renderDatalist(); refreshCards(); changed(); });
+$('favourAmt').addEventListener('input', (e) => { state.favourAmt = clamp(Number(e.target.value), 10, 100); renderFavour(); changed(); });
+$('weight').addEventListener('input', (e) => { state.weight = clamp(Number(e.target.value), 0, 100); $('weightOut').textContent = (100 - state.weight) + ' / ' + state.weight; changed(); });
+$('addTop').addEventListener('click', addEncounter);
+$('addBottom').addEventListener('click', addEncounter);
+const encList = $('encList');
+encList.addEventListener('input', onEditorInput);
+encList.addEventListener('change', onEditorChange);
+encList.addEventListener('click', onEditorClick);
+$('copyData').addEventListener('click', copyData);
+$('loadData').addEventListener('click', loadData);
+$('blankRun').addEventListener('click', (e) => twoTap(e.currentTarget, 'Tap again to erase every encounter', 4000, 'Start a blank run', () => { blankRun(); setStatus('Started a blank run. Your settings and names are kept.'); }));
+$('clearExample').addEventListener('click', blankRun);
+
+renderAll();
+recompute();
+</script>
+</body>
+</html>
